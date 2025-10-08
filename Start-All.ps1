@@ -2,6 +2,7 @@
 # SearxNG LinkedIn Collector - Start All Services
 # ===============================================================
 # Starts both API server and React UI in separate windows
+# Automatically cleans up any existing processes first
 
 [CmdletBinding()]
 param()
@@ -13,6 +14,41 @@ Write-Host "===============================================================" -Fo
 Write-Host ""
 
 $scriptRoot = $PSScriptRoot
+
+# Function to kill processes by port
+function Stop-ProcessOnPort {
+    param([int]$Port, [string]$ServiceName)
+
+    try {
+        $netstat = netstat -ano | Select-String ":$Port\s" | Select-String "LISTENING"
+
+        if ($netstat) {
+            Write-Host "  Cleaning up existing $ServiceName process on port $Port..." -ForegroundColor Yellow
+            foreach ($line in $netstat) {
+                $parts = $line -split '\s+' | Where-Object { $_ -ne '' }
+                $pid = $parts[-1]
+
+                if ($pid -and $pid -match '^\d+$') {
+                    try {
+                        Stop-Process -Id $pid -Force -ErrorAction Stop
+                        Write-Host "  ✓ Stopped existing process (PID: $pid)" -ForegroundColor Green
+                    } catch {
+                        Write-Host "  ✗ Failed to stop PID $pid" -ForegroundColor Red
+                    }
+                }
+            }
+            Start-Sleep -Milliseconds 500
+        }
+    } catch {
+        # Silently continue if error
+    }
+}
+
+# Clean up existing processes
+Write-Host "[Cleanup] Checking for existing processes..." -ForegroundColor Cyan
+Stop-ProcessOnPort -Port 3001 -ServiceName "API Server"
+Stop-ProcessOnPort -Port 5173 -ServiceName "React UI"
+Write-Host ""
 
 # Start API Server
 Write-Host "[1/2] Starting API Server..." -ForegroundColor Yellow
