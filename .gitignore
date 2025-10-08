@@ -2,6 +2,7 @@
 # .gitignore for SearxNG LinkedIn Collector
 # ========================================================================
 
+<<<<<<< HEAD
 # Generated files in folders (but keep the directories with .gitkeep)
 logs/*
 !logs/.gitkeep
@@ -34,6 +35,28 @@ query_cache.json
 
 # But keep these essential text files
 !stanford_keywords_all.txt
+=======
+# Generated folders (data and logs)
+logs/
+results/
+reports/
+cache/
+exports/
+archive/
+backup*/
+
+# Generated result files (if in root)
+*.csv
+*.json
+*.txt
+*.html
+
+# But keep these essential text files
+!README.md
+!stanford_keywords_comprehensive.txt
+!stanford_keywords_generated.txt
+!.gitignore
+>>>>>>> 9937075 (Add .gitignore, CHANGELOG, CONTRIBUTING.md, and example settings.yml)
 
 # Cache files
 query_cache.json
