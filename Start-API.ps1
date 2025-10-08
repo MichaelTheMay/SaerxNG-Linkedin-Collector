@@ -15,4 +15,3 @@ Write-Host ""
 
 Set-Location $apiPath
 npm start
-

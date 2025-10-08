@@ -195,13 +195,13 @@ Write-Host "`n╔═════════════════════
 Write-Host "║  SearxNG LinkedIn Collector - Professional Edition v2.1   ║" -ForegroundColor Cyan
 Write-Host "╚════════════════════════════════════════════════════════════╝`n" -ForegroundColor Cyan
 
-Write-Host "📁 Directory Structure:" -ForegroundColor Cyan
+Write-Host "Directory Structure:" -ForegroundColor Cyan
 Write-Host "   Root:    $($Directories.Root)" -ForegroundColor Gray
 Write-Host "   ├─ logs/       (search logs)" -ForegroundColor Gray
-Write-Host "   ├─ results/    (CSV, JSON, TXT)" -ForegroundColor Gray
-Write-Host "   ├─ reports/    (HTML reports)" -ForegroundColor Gray
-Write-Host "   ├─ cache/      (query cache)" -ForegroundColor Gray
-Write-Host "   └─ exports/    (custom exports)" -ForegroundColor Gray
+Write-Host "   +- results/    (CSV, JSON, TXT)" -ForegroundColor Gray
+Write-Host "   +- reports/    (HTML reports)" -ForegroundColor Gray
+Write-Host "   +- cache/      (query cache)" -ForegroundColor Gray
+Write-Host "   +- exports/    (custom exports)" -ForegroundColor Gray
 Write-Host ""
 
 Write-Log "Script started with parameters: SearxURL=$SearxURL, WorkDir=$WorkDir, UseCache=$($Config.UseCache)"
@@ -312,11 +312,11 @@ if (-not $SkipTest.IsPresent) {
         }
         $testQuery = [uri]::EscapeDataString("test")
         $null = Invoke-WebRequest -Uri "$($Config.SearxURL)/search?q=$testQuery`&format=json" -Headers $testHeaders -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
-        Write-Host "      ✓ SearxNG is accessible at $($Config.SearxURL)`n" -ForegroundColor Green
+        Write-Host "      [+] SearxNG is accessible at $($Config.SearxURL)`n" -ForegroundColor Green
         Write-Log "SearxNG connection test successful" "SUCCESS"
     }
     catch {
-        Write-Host "      ✗ Cannot access SearxNG JSON API`n" -ForegroundColor Red
+        Write-Host "      [-] Cannot access SearxNG JSON API`n" -ForegroundColor Red
         Write-Host "Error: $($_.Exception.Message)`n" -ForegroundColor Red
         Write-Log "SearxNG connection test failed: $($_.Exception.Message)" "ERROR"
         
@@ -430,7 +430,7 @@ foreach ($kw in $Keywords) {
                 $Stats.DuplicatesSkipped++
             }
         }
-        Write-Host "      ✓ Loaded: $addedFromCache results from cache" -ForegroundColor Magenta
+        Write-Host "      [+] Loaded: $addedFromCache results from cache" -ForegroundColor Magenta
         $Stats.CachedQueries++
         continue
     }
@@ -552,7 +552,7 @@ foreach ($kw in $Keywords) {
                 }
             }
             else {
-                Write-Host "      ✗ HTTP $($response.StatusCode) on page $pageNum" -ForegroundColor Red
+                Write-Host "      [-] HTTP $($response.StatusCode) on page $pageNum" -ForegroundColor Red
                 $continueSearching = $false
             }
             
@@ -573,7 +573,7 @@ foreach ($kw in $Keywords) {
         $Stats.TotalResults += $addedCount
         
         if ($addedCount -gt 0) {
-            Write-Host "      ✓ Added: $addedCount" -NoNewline -ForegroundColor Green
+            Write-Host "      [+] Added: $addedCount" -NoNewline -ForegroundColor Green
             Write-Host " from $totalPagesChecked page(s)" -NoNewline -ForegroundColor Cyan
             if ($duplicateCount -gt 0) {
                 Write-Host " | Duplicates: $duplicateCount" -NoNewline -ForegroundColor Yellow
@@ -592,7 +592,7 @@ foreach ($kw in $Keywords) {
         }
     }
     catch {
-        Write-Host "      ✗ Error: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "      [-] Error: $($_.Exception.Message)" -ForegroundColor Red
         $Stats.FailedQueries++
         $errorMsg = "Query '$kw': $($_.Exception.Message)"
         $Stats.Errors.Add($errorMsg)
@@ -635,8 +635,8 @@ $engineStats = $AllResults | Group-Object -Property Engine |
     Select-Object @{N='Engine';E={$_.Name}}, @{N='Count';E={$_.Count}} | 
     Sort-Object Count -Descending
 
-Write-Host "      ✓ Grouped by keyword: $($keywordStats.Count) keywords" -ForegroundColor Green
-Write-Host "      ✓ Grouped by engine: $($engineStats.Count) engines" -ForegroundColor Green
+Write-Host "      [+] Grouped by keyword: $($keywordStats.Count) keywords" -ForegroundColor Green
+Write-Host "      [+] Grouped by engine: $($engineStats.Count) engines" -ForegroundColor Green
 
 # ============== EXPORT RESULTS ==============
 Write-Host "`n[4/8] Exporting results..." -ForegroundColor Yellow
@@ -648,7 +648,7 @@ $exportTimestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 if ($Config.ExportFormats -contains "CSV") {
     $csvPath = Join-Path $Directories.Results "linkedin_results_$exportTimestamp.csv"
     $AllResults | Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
-    Write-Host "      ✓ CSV: $csvPath" -ForegroundColor Green
+        Write-Host "      [+] CSV: $csvPath" -ForegroundColor Green
     $ExportedFiles += $csvPath
     Write-Log "Exported CSV: $csvPath" "SUCCESS"
 }
@@ -667,7 +667,7 @@ if ($Config.ExportFormats -contains "JSON") {
         Statistics = $Stats
     }
     $exportData | ConvertTo-Json -Depth 10 | Out-File -FilePath $jsonPath -Encoding UTF8
-    Write-Host "      ✓ JSON: $jsonPath" -ForegroundColor Green
+        Write-Host "      [+] JSON: $jsonPath" -ForegroundColor Green
     $ExportedFiles += $jsonPath
     Write-Log "Exported JSON: $jsonPath" "SUCCESS"
 }
@@ -681,7 +681,7 @@ if ($Config.ExportFormats -contains "TXT") {
     } else {
         [System.IO.File]::WriteAllText($txtPath, "# No results found`n", [System.Text.Encoding]::UTF8)
     }
-    Write-Host "      ✓ TXT: $txtPath" -ForegroundColor Green
+        Write-Host "      [+] TXT: $txtPath" -ForegroundColor Green
     $ExportedFiles += $txtPath
     Write-Log "Exported TXT: $txtPath" "SUCCESS"
 }
@@ -739,7 +739,7 @@ if ($Config.ExportFormats -contains "HTML") {
             </div>
         </div>
         
-        <h2>📊 Results by Keyword</h2>
+        <h2>Results by Keyword</h2>
         <table>
             <tr><th>Keyword</th><th>Results</th><th>Percentage</th></tr>
 "@
@@ -749,7 +749,7 @@ if ($Config.ExportFormats -contains "HTML") {
         $percent = [math]::Round(($stat.Count / $Stats.UniqueURLs) * 100, 1)
         [void]$sb.AppendLine("<tr><td>$($stat.Keyword)</td><td>$($stat.Count)</td><td>$percent%</td></tr>")
     }
-    [void]$sb.AppendLine("</table><h2>🔗 All Results</h2><table><tr><th>Title</th><th>URL</th><th>Keyword</th><th>Engine</th></tr>")
+    [void]$sb.AppendLine("</table><h2>All Results</h2><table><tr><th>Title</th><th>URL</th><th>Keyword</th><th>Engine</th></tr>")
     foreach ($result in $AllResults) {
         [void]$sb.AppendLine("<tr><td>$($result.Title)</td><td><a href='$($result.URL)' target='_blank'>$($result.URL)</a></td><td><span class='keyword'>$($result.Keyword)</span></td><td><span class='engine'>$($result.Engine)</span></td></tr>")
     }
@@ -757,7 +757,7 @@ if ($Config.ExportFormats -contains "HTML") {
     
     [void]$sb.AppendLine("</table><div class='footer'><p>Generated by SearxNG LinkedIn Collector Professional Edition v2.0</p></div></div></body></html>")
     [System.IO.File]::WriteAllText($htmlPath, $sb.ToString(), [System.Text.Encoding]::UTF8)
-    Write-Host "      ✓ HTML: $htmlPath" -ForegroundColor Green
+        Write-Host "      [+] HTML: $htmlPath" -ForegroundColor Green
     $ExportedFiles += $htmlPath
     Write-Log "Exported HTML: $htmlPath" "SUCCESS"
 }
@@ -786,11 +786,11 @@ foreach ($stat in $top5Keywords) {
     $bar = "█" * [math]::Min([math]::Floor($percent / 2), 50)
     Write-Host "         $($stat.Keyword.PadRight(40)) " -NoNewline -ForegroundColor White
     Write-Host "$($stat.Count.ToString().PadLeft(3)) " -NoNewline -ForegroundColor Green
-    Write-Host "($percent%) " -NoNewline -ForegroundColor Gray
+    Write-Host "($percent`%) " -NoNewline -ForegroundColor Gray
     Write-Host "$bar" -ForegroundColor Cyan
 }
 
-Write-Host "`n      🌐 Search Engines Used:" -ForegroundColor Cyan
+Write-Host "`n      Search Engines Used:" -ForegroundColor Cyan
 foreach ($stat in $engineStats) {
     Write-Host "         $($stat.Engine.PadRight(20)): $($stat.Count)" -ForegroundColor White
 }
@@ -807,15 +807,15 @@ if ($Stats.Errors.Count -gt 0) {
     }
 }
 else {
-    Write-Host "      ✓ No errors encountered!" -ForegroundColor Green
+    Write-Host "      [+] No errors encountered!" -ForegroundColor Green
 }
 
 # ============== COMPLETION ==============
 Write-Host "`n[8/8] " -NoNewline -ForegroundColor Yellow
-Write-Host "✓ Complete!`n" -ForegroundColor Green
+Write-Host "[+] Complete!`n" -ForegroundColor Green
 
 Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  📁 EXPORTED FILES (Organized by Type)" -ForegroundColor Cyan
+Write-Host "  EXPORTED FILES (Organized by Type)" -ForegroundColor Cyan
 Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
 
 # Organize files by directory
@@ -823,7 +823,7 @@ $filesByDir = $ExportedFiles | Group-Object { Split-Path -Parent $_ }
 
 foreach ($group in $filesByDir) {
     $dirName = Split-Path -Leaf $group.Name
-    Write-Host "`n  📂 $dirName/" -ForegroundColor Yellow
+    Write-Host "`n  $dirName/" -ForegroundColor Yellow
     foreach ($file in $group.Group) {
         $fileInfo = Get-Item $file
         $sizeKB = [math]::Round($fileInfo.Length / 1KB, 2)
@@ -833,18 +833,18 @@ foreach ($group in $filesByDir) {
     }
 }
 
-Write-Host "`n  📂 logs/" -ForegroundColor Yellow
+Write-Host "`n  logs/" -ForegroundColor Yellow
 Write-Host "     • " -NoNewline -ForegroundColor White
 Write-Host "$(Split-Path -Leaf $LogFile)" -ForegroundColor Cyan
 
 Write-Host "`n═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  ⚡ QUICK ACTIONS" -ForegroundColor Cyan
+Write-Host "  QUICK ACTIONS" -ForegroundColor Cyan
 Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
 
 $csvFile = $ExportedFiles | Where-Object { $_ -like "*.csv" } | Select-Object -First 1
 $htmlFile = $ExportedFiles | Where-Object { $_ -like "*.html" } | Select-Object -First 1
 
-Write-Host "`n  📄 Open Files:" -ForegroundColor Cyan
+Write-Host "`n  Open Files:" -ForegroundColor Cyan
 if ($csvFile) {
     Write-Host "     • CSV:     " -NoNewline -ForegroundColor Gray
     Write-Host "notepad `"$csvFile`"" -ForegroundColor White
@@ -856,7 +856,7 @@ if ($htmlFile) {
 Write-Host "     • Log:     " -NoNewline -ForegroundColor Gray
 Write-Host "notepad `"$LogFile`"" -ForegroundColor White
 
-Write-Host "`n  📂 Open Folders:" -ForegroundColor Cyan
+Write-Host "`n  Open Folders:" -ForegroundColor Cyan
 Write-Host "     • Root:    " -NoNewline -ForegroundColor Gray
 Write-Host "explorer `"$($Directories.Root)`"" -ForegroundColor White
 Write-Host "     • Results: " -NoNewline -ForegroundColor Gray

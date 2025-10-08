@@ -192,7 +192,7 @@ $xaml = @"
                                             <TextBox Name="SearxUrlBox" Text="http://localhost:8888"/>
                                             
                                             <Label Content="Work Directory:" FontSize="11"/>
-                                            <TextBox Name="WorkDirBox" Text="C:\SearxQueries"/>
+                                            <TextBox Name="WorkDirBox" Text=""/>
                                         </StackPanel>
                                     </GroupBox>
                                     
@@ -579,7 +579,7 @@ function Initialize-DefaultKeywords {
 }
 
 function Initialize-RecentReports {
-    $reportsPath = Join-Path $workDirBox.Text "reports"
+    $reportsPath = Join-Path $workDirBox.Text "data\reports"
     Write-Console "Scanning reports directory: $reportsPath"
     if (Test-Path $reportsPath) {
         $script:recentReports = Get-ChildItem -Path $reportsPath -Filter "*.html" | 
@@ -930,9 +930,9 @@ $generatePermutationsBtn.Add_Click({
 # Open folders buttons
 function Open-Folder {
     param([string]$SubFolder, [string]$Name)
-    $path = [System.IO.Path]::Combine($workDirBox.Text, $SubFolder)
-    if (Test-Path $path) {
-        Start-Process explorer $path
+    $dataPath = [System.IO.Path]::Combine($workDirBox.Text, "data", $SubFolder)
+    if (Test-Path $dataPath) {
+        Start-Process explorer $dataPath
     } else {
         [System.Windows.MessageBox]::Show("$Name folder does not exist yet.", "Folder Not Found", "OK", "Information")
     }
@@ -1210,6 +1210,14 @@ $exportResultsBtn.Add_Click({
 })
 
 # ============== INITIALIZATION ==============
+
+# Calculate root directory (go up two levels from scripts folder)
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$packagesDir = Split-Path -Parent $scriptDir
+$rootDir = Split-Path -Parent $packagesDir
+
+# Set Work Directory to root
+$workDirBox.Text = $rootDir
 
 # Bind keywords list
 $keywordsList.ItemsSource = $script:keywords

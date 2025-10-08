@@ -1,33 +1,10 @@
 // API client for SearxNG backend
 import axios from 'axios';
+import type { SearchParams, SearchResult, SearchResponse } from '../../../shared/types';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
-export interface SearchParams {
-  keywords: string[];
-  searxUrl: string;
-  useCache: boolean;
-  openResults: boolean;
-  verbose: boolean;
-  parallel: boolean;
-  throttleLimit: number;
-  delay: number;
-  maxRetries: number;
-}
-
-export interface SearchResult {
-  title: string;
-  url: string;
-  keyword: string;
-  engine: string;
-}
-
-export interface SearchResponse {
-  success: boolean;
-  results?: SearchResult[];
-  output?: string;
-  error?: string;
-}
+export type { SearchParams, SearchResult, SearchResponse };
 
 export const api = {
   async testConnection(searxUrl: string): Promise<{ success: boolean; message?: string; error?: string }> {

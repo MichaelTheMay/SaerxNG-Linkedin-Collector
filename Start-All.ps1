@@ -17,7 +17,7 @@ $scriptRoot = $PSScriptRoot
 # Start API Server
 Write-Host "[1/2] Starting API Server..." -ForegroundColor Yellow
 $apiPath = Join-Path $scriptRoot "packages\api"
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$apiPath' && npm start"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$apiPath'; npm start"
 Write-Host "✓ API Server starting in new window (port 3001)" -ForegroundColor Green
 
 # Wait a moment for API to initialize
@@ -26,7 +26,7 @@ Start-Sleep -Seconds 2
 # Start React UI
 Write-Host "[2/2] Starting React UI..." -ForegroundColor Yellow
 $uiPath = Join-Path $scriptRoot "packages\ui"
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$uiPath' && npm run dev"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$uiPath'; npm run dev"
 Write-Host "✓ React UI starting in new window (port 5173)" -ForegroundColor Green
 
 Write-Host ""
