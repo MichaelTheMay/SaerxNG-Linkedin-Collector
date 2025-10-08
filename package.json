@@ -11,9 +11,12 @@
     "install:all": "npm install && cd packages/api && npm install && cd ../ui && npm install",
     "dev:api": "cd packages/api && npm start",
     "dev:ui": "cd packages/ui && npm run dev",
+    "build": "npm run build:ui",
     "build:ui": "cd packages/ui && npm run build",
+    "preview": "cd packages/ui && npm run preview",
     "start": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
-    "clean": "rimraf packages/*/node_modules node_modules"
+    "clean": "rimraf packages/*/node_modules node_modules",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
     "concurrently": "^8.2.0",

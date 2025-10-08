@@ -80,18 +80,7 @@ const theme = createTheme({
   },
 });
 
-interface SearchResult {
-  title: string;
-  url: string;
-  keyword: string;
-  engine: string;
-}
-
-interface SearchProgress {
-  current: number;
-  total: number;
-  activity: string;
-}
+import type { SearchResult, SearchProgress } from '../../../shared/types';
 
 function App() {
   const [activeTab, setActiveTab] = useState(0);
