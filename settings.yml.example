@@ -1,0 +1,68 @@
+# ========================================================================
+# SearxNG Sample Configuration for LinkedIn Searches
+# ========================================================================
+# Copy this file to your SearxNG config directory and rename to settings.yml
+# For Docker: /etc/searxng/settings.yml or C:\searxng\config\settings.yml
+# ========================================================================
+
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "SearxNG"
+
+server:
+  secret_key: "CHANGE_THIS_TO_A_RANDOM_STRING"  # IMPORTANT: Change this!
+  limiter: false  # Disable for better performance with scripts
+  image_proxy: true
+  
+outgoing:
+  request_timeout: 10.0  # Increased for better reliability
+  max_request_timeout: 15.0
+  
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: ""
+  formats:
+    - html
+    - json  # Required for this script!
+
+# ========================================================================
+# Recommended Engine Configuration
+# ========================================================================
+# Note: Some engines may be broken or rate-limited
+# Only enable engines that work in your environment
+# ========================================================================
+
+engines:
+  # Working engines (recommended)
+  - name: bing
+    disabled: false
+    timeout: 10.0
+    
+  - name: qwant
+    disabled: false
+    timeout: 10.0
+    
+  - name: mojeek
+    disabled: false
+    timeout: 10.0
+    
+  - name: yahoo
+    disabled: false
+    timeout: 10.0
+    
+  # Problematic engines (disable if they cause issues)
+  - name: startpage
+    disabled: true  # Known JSON parsing issues
+    
+  - name: duckduckgo
+    disabled: true  # May trigger CAPTCHA
+    
+  - name: brave
+    disabled: true  # May rate limit
+    
+  - name: google
+    disabled: true  # May timeout
+
