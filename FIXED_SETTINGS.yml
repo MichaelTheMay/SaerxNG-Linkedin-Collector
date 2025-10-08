@@ -1,0 +1,65 @@
+# ========================================================================
+# SearxNG Settings - Fixed Configuration
+# ========================================================================
+# This configuration disables the broken Startpage engine
+# and enables working engines for LinkedIn searches
+# ========================================================================
+
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "SearxNG"
+
+server:
+  secret_key: "changeme_to_something_unique"  # CHANGE THIS!
+  limiter: false  # Disabled for testing
+  image_proxy: true
+  
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: ""
+  formats:
+    - html
+    - json  # Required for the script!
+
+engines:
+  # DISABLE BROKEN STARTPAGE ENGINE
+  - name: startpage
+    disabled: true  # THIS IS THE FIX!
+    
+  # ENABLE WORKING ENGINES
+  - name: bing
+    disabled: false
+    weight: 1
+    
+  - name: duckduckgo
+    disabled: false
+    weight: 1
+    
+  - name: google
+    disabled: false
+    weight: 1
+    
+  - name: qwant
+    disabled: false
+    weight: 1
+    
+  - name: brave
+    disabled: false
+    weight: 1
+    
+  - name: mojeek
+    disabled: false
+    weight: 1
+    
+  # Additional useful engines
+  - name: wikipedia
+    disabled: false
+    weight: 1
+    
+  - name: wikidata
+    disabled: false
+    weight: 1
+

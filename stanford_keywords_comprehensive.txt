@@ -1,0 +1,407 @@
+# ========================================================================
+# Stanford CS LinkedIn Keywords - Comprehensive Permutations
+# ========================================================================
+# This file contains all common abbreviations and spelling variations
+# that Stanford CS people use on their LinkedIn profiles.
+#
+# Usage:
+#   Copy these keywords into the ScriptQueries.ps1 DefaultKeywords array
+#   Or use: .\ScriptQueries.ps1 -Keywords (Get-Content .\stanford_keywords_comprehensive.txt | Where-Object {$_ -notmatch '^#|^$'})
+
+# ========================================================================
+# CORE STANFORD + COMPUTER SCIENCE COMBINATIONS
+# ========================================================================
+
+# Full spellings
+Stanford Computer Science
+Stanford University Computer Science
+Stanford CS
+Stanford Comp Sci
+Stanford CompSci
+
+# With "Dept" variations
+Stanford Computer Science Department
+Stanford CS Department
+Stanford CS Dept
+Stanford Comp Sci Dept
+
+# With "School"
+Stanford School of Engineering
+Stanford Engineering
+
+# ========================================================================
+# DEGREE LEVEL COMBINATIONS
+# ========================================================================
+
+# PhD variations
+Stanford PhD Computer Science
+Stanford Ph.D. Computer Science
+Stanford Ph.D Computer Science
+Stanford PhD CS
+Stanford Ph.D. CS
+Stanford Doctoral Student Computer Science
+Stanford Doctorate Computer Science
+Stanford CS PhD
+Stanford CS Ph.D.
+
+# Master's variations
+Stanford MS Computer Science
+Stanford M.S. Computer Science
+Stanford M.S Computer Science
+Stanford MS CS
+Stanford M.S. CS
+Stanford MSc Computer Science
+Stanford M.Sc. Computer Science
+Stanford Masters Computer Science
+Stanford Master's Computer Science
+Stanford Masters CS
+Stanford Master's CS
+Stanford CS Masters
+Stanford CS Master's
+
+# Bachelor's variations
+Stanford BS Computer Science
+Stanford B.S. Computer Science
+Stanford B.S Computer Science
+Stanford BS CS
+Stanford B.S. CS
+Stanford BSc Computer Science
+Stanford B.Sc. Computer Science
+Stanford Bachelors Computer Science
+Stanford Bachelor's Computer Science
+Stanford Bachelors CS
+Stanford Bachelor's CS
+Stanford Undergraduate CS
+Stanford Undergrad CS
+
+# Graduate/Student general
+Stanford Graduate Student CS
+Stanford Grad Student Computer Science
+Stanford CS Student
+Stanford Computer Science Student
+
+# ========================================================================
+# ARTIFICIAL INTELLIGENCE COMBINATIONS
+# ========================================================================
+
+Stanford Artificial Intelligence
+Stanford AI
+Stanford A.I.
+Stanford AI Lab
+Stanford Artificial Intelligence Lab
+Stanford Artificial Intelligence Laboratory
+Stanford SAIL
+Stanford AI Research
+Stanford AI Researcher
+Stanford Artificial Intelligence Research
+Stanford PhD AI
+Stanford Ph.D. Artificial Intelligence
+Stanford MS AI
+Stanford M.S. Artificial Intelligence
+Stanford CS AI
+Stanford Computer Science AI
+
+# ========================================================================
+# MACHINE LEARNING COMBINATIONS
+# ========================================================================
+
+Stanford Machine Learning
+Stanford ML
+Stanford MachineLearning
+Stanford Machine Learning Group
+Stanford ML Group
+Stanford ML Researcher
+Stanford Machine Learning Researcher
+Stanford PhD Machine Learning
+Stanford Ph.D. ML
+Stanford MS Machine Learning
+Stanford M.S. ML
+Stanford CS ML
+Stanford Computer Science Machine Learning
+
+# ========================================================================
+# DEEP LEARNING COMBINATIONS
+# ========================================================================
+
+Stanford Deep Learning
+Stanford DL
+Stanford DeepLearning
+Stanford Deep Learning Research
+Stanford Neural Networks
+Stanford NN
+Stanford PhD Deep Learning
+Stanford Ph.D. DL
+
+# ========================================================================
+# NATURAL LANGUAGE PROCESSING
+# ========================================================================
+
+Stanford Natural Language Processing
+Stanford NLP
+Stanford NLProc
+Stanford Language Processing
+Stanford Computational Linguistics
+Stanford NLP Group
+Stanford NLP Lab
+Stanford NLP Researcher
+Stanford PhD NLP
+Stanford Ph.D. Natural Language Processing
+Stanford MS NLP
+Stanford CS NLP
+
+# ========================================================================
+# COMPUTER VISION
+# ========================================================================
+
+Stanford Computer Vision
+Stanford CV
+Stanford Vision
+Stanford Image Processing
+Stanford Computer Vision Lab
+Stanford CV Group
+Stanford Computer Vision Researcher
+Stanford PhD Computer Vision
+Stanford Ph.D. CV
+Stanford MS Computer Vision
+
+# ========================================================================
+# ROBOTICS
+# ========================================================================
+
+Stanford Robotics
+Stanford Robotics Lab
+Stanford Robotics Laboratory
+Stanford Robotics Research
+Stanford Robot Learning
+Stanford Autonomous Systems
+Stanford PhD Robotics
+Stanford Ph.D. Robotics
+Stanford MS Robotics
+
+# ========================================================================
+# HUMAN-COMPUTER INTERACTION
+# ========================================================================
+
+Stanford HCI
+Stanford Human-Computer Interaction
+Stanford Human Computer Interaction
+Stanford HCI Group
+Stanford HCI Lab
+Stanford Interaction Design
+Stanford PhD HCI
+Stanford Ph.D. Human-Computer Interaction
+
+# ========================================================================
+# DATA SCIENCE
+# ========================================================================
+
+Stanford Data Science
+Stanford Data Scientist
+Stanford DataScience
+Stanford Big Data
+Stanford Data Analytics
+Stanford Data Analysis
+Stanford CS Data Science
+Stanford PhD Data Science
+Stanford MS Data Science
+
+# ========================================================================
+# SYSTEMS & ARCHITECTURE
+# ========================================================================
+
+Stanford Systems
+Stanford Computer Systems
+Stanford CS Systems
+Stanford Distributed Systems
+Stanford Operating Systems
+Stanford Computer Architecture
+Stanford Systems Research
+
+# ========================================================================
+# SECURITY & CRYPTOGRAPHY
+# ========================================================================
+
+Stanford Security
+Stanford Computer Security
+Stanford Cybersecurity
+Stanford Cyber Security
+Stanford Cryptography
+Stanford Crypto
+Stanford Security Researcher
+Stanford PhD Security
+
+# ========================================================================
+# THEORY & ALGORITHMS
+# ========================================================================
+
+Stanford Theory
+Stanford Computer Science Theory
+Stanford CS Theory
+Stanford Theoretical Computer Science
+Stanford Algorithms
+Stanford Complexity Theory
+Stanford PhD Theory
+
+# ========================================================================
+# SOFTWARE ENGINEERING
+# ========================================================================
+
+Stanford Software Engineering
+Stanford Software Engineer
+Stanford Software Development
+Stanford Software Developer
+Stanford CS Software
+
+# ========================================================================
+# RESEARCH POSITIONS
+# ========================================================================
+
+Stanford Research Scientist
+Stanford Researcher Computer Science
+Stanford CS Researcher
+Stanford Research Associate
+Stanford Postdoc Computer Science
+Stanford Postdoctoral Computer Science
+Stanford Postdoc CS
+Stanford Post-doc Computer Science
+Stanford Post-doctoral Researcher
+Stanford Visiting Researcher
+Stanford Visiting Scholar
+
+# ========================================================================
+# FACULTY POSITIONS
+# ========================================================================
+
+Stanford Professor Computer Science
+Stanford Prof Computer Science
+Stanford Prof. CS
+Stanford CS Professor
+Stanford Associate Professor Computer Science
+Stanford Assistant Professor Computer Science
+Stanford Lecturer Computer Science
+Stanford Faculty Computer Science
+Stanford CS Faculty
+Stanford Adjunct Professor
+
+# ========================================================================
+# LAB & GROUP AFFILIATIONS
+# ========================================================================
+
+Stanford AI Lab
+Stanford SAIL
+Stanford NLP Group
+Stanford Vision Lab
+Stanford Graphics Lab
+Stanford HCI Group
+Stanford InfoLab
+Stanford Database Group
+Stanford Networking Group
+Stanford Systems Group
+Stanford Theory Group
+Stanford Security Lab
+
+# ========================================================================
+# SPECIFIC RESEARCH AREAS (Advanced)
+# ========================================================================
+
+Stanford Reinforcement Learning
+Stanford RL
+Stanford Generative AI
+Stanford GenAI
+Stanford Large Language Models
+Stanford LLM
+Stanford Transformer Models
+Stanford Neural Architecture Search
+Stanford AutoML
+Stanford Federated Learning
+Stanford Edge Computing
+Stanford Quantum Computing
+Stanford Blockchain
+Stanford Graph Neural Networks
+Stanford GNN
+Stanford Explainable AI
+Stanford XAI
+Stanford Computer Graphics
+Stanford Human-AI Interaction
+Stanford Social Computing
+Stanford Computational Biology
+Stanford Bioinformatics
+Stanford Medical AI
+Stanford Healthcare AI
+
+# ========================================================================
+# CROSS-DISCIPLINARY
+# ========================================================================
+
+Stanford Computational Social Science
+Stanford Computational Neuroscience
+Stanford Neuroengineering
+Stanford Biomedical Informatics
+Stanford Computational Finance
+Stanford FinTech
+Stanford EdTech
+
+# ========================================================================
+# INDUSTRY CONNECTIONS
+# ========================================================================
+
+Stanford Alumni Computer Science
+Stanford CS Alumni
+Stanford CS Alum
+ex-Stanford Computer Science
+Former Stanford CS
+Stanford Graduate Computer Science
+
+# ========================================================================
+# COMBINED VARIATIONS (High-Value)
+# ========================================================================
+
+Stanford PhD AI ML
+Stanford Ph.D. Machine Learning AI
+Stanford MS AI NLP
+Stanford Computer Science Researcher
+Stanford CS Research Scientist
+Stanford University AI Researcher
+Stanford Graduate AI ML
+Stanford PhD Student ML
+Stanford Doctoral Candidate CS
+Stanford CS Postdoc
+Stanford Professor AI
+Stanford Faculty Machine Learning
+
+# ========================================================================
+# SPECIAL PROGRAMS & INITIATIVES
+# ========================================================================
+
+Stanford HAI
+Stanford Human-Centered AI
+Stanford Institute for Human-Centered AI
+Stanford AI4ALL
+Stanford Code in Place
+Stanford CS Education
+
+# ========================================================================
+# LINKEDIN-SPECIFIC PHRASES
+# ========================================================================
+
+Stanford CS Experience
+Currently at Stanford CS
+Studied at Stanford Computer Science
+Education Stanford Computer Science
+Works at Stanford CS
+Researcher at Stanford
+PhD Candidate Stanford
+Graduate Student Stanford
+
+# ========================================================================
+# TOTAL KEYWORD COUNT: 200+ unique search terms
+# ========================================================================
+# These cover all major permutations of:
+# - Institution names (Stanford, Stanford University)
+# - Department names (CS, Computer Science, Comp Sci, CompSci)
+# - Degree types (PhD, MS, BS and all variations)
+# - Research areas (AI, ML, NLP, CV, HCI, etc.)
+# - Positions (Professor, Researcher, Student, etc.)
+# - Common abbreviations used on LinkedIn profiles
+# ========================================================================
+
