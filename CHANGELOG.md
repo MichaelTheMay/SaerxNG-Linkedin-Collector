@@ -2,6 +2,54 @@
 
 All notable changes to this project.
 
+## [2.2.0] - 2025-10-08
+
+### 🚀 Major Features Added
+
+#### Parallel Execution
+- **New Script:** `ScriptQueriesParallel.ps1` with true parallel execution using PowerShell Runspaces
+- Process multiple keywords simultaneously for 3-5x faster searches
+- Configurable throttle limit (default: 5 concurrent threads)
+- Thread-safe collections: `ConcurrentBag` and `ConcurrentDictionary`
+- Intelligent job management with proper resource cleanup
+
+#### Real-Time Progress Tracking
+- **Visual Progress Bar** in UI showing completion percentage
+- Real-time activity updates (e.g., "Processing: Stanford AI")
+- Current/Total counter display
+- Progress file-based communication between UI and script
+- 500ms refresh rate for smooth updates
+
+### ✨ UI Enhancements
+- Added "⚡ Parallel Execution" checkbox to enable/disable parallel mode
+- Added "Parallel Threads" input field for throttle limit configuration
+- Progress panel with progress bar, percentage, and status text
+- Automatic show/hide of progress panel during searches
+- Enhanced status messages showing execution mode
+
+### 🛠️ Technical Improvements
+- RunspacePool implementation for efficient parallel processing
+- Progress tracking via JSON file communication
+- Enhanced error handling in parallel execution
+- Memory-efficient concurrent collections
+- Proper cleanup of temporary progress files
+
+### 📚 Documentation
+- New guide: `PARALLEL_EXECUTION_GUIDE.md` with full usage instructions
+- Updated README.md with v2.2 features
+- Performance comparison tables
+- Troubleshooting section for parallel execution
+- Recommended settings for different search sizes
+
+### 🔧 Under the Hood
+- Thread-safe URL deduplication across parallel threads
+- Maintains backward compatibility with original sequential script
+- Smart script selection based on UI settings
+- Enhanced timer logic for progress monitoring
+- Improved state management for search jobs
+
+---
+
 ## [2.1.2] - 2025-10-08
 
 ### Added

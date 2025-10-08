@@ -1,39 +1,134 @@
 # SearxNG LinkedIn Collector - Git Ignore
 
-# Output directories
-results/
-reports/
-logs/
-cache/
-exports/
+# ============== Output Directories ==============
+results/*
+!results/.gitkeep
+reports/*
+!reports/.gitkeep
+logs/*
+!logs/.gitkeep
+cache/*
+!cache/.gitkeep
+exports/*
+!exports/.gitkeep
 backup_*/
 
-# Keep directory structure
-!results/.gitkeep
-!reports/.gitkeep
-!logs/.gitkeep
-!cache/.gitkeep
-!exports/.gitkeep
-
-# Windows
+# ============== Windows ==============
 Thumbs.db
+Desktop.ini
 desktop.ini
 $RECYCLE.BIN/
+*.stackdump
+*.lnk
 
-# PowerShell
+# ============== PowerShell ==============
 *.ps1xml
+*.psm1xml
 
-# Temp files
+# ============== Temp & Generated Files ==============
 *.tmp
 *.temp
 *.log
 *.cache
+*.bak
+*.swp
+*~
+.DS_Store
 
-# User-specific
+# Progress tracking files
+*_progress_*.json
+
+# ============== User-Specific Config ==============
 settings.yml
 !settings.yml.example
 
-# IDE
+# User keyword files (keep examples)
+*_keywords.txt
+!stanford_keywords_all.txt
+
+# ============== IDE & Editors ==============
+# VSCode
 .vscode/
-.idea/
 *.code-workspace
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============== OS ==============
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+
+# ============== Package Managers ==============
+# Node (if any JS tools are added)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if any Python tools are added)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# ============== Security ==============
+# Never commit these
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+.env.local
+.env.*.local
+
+# API keys and tokens
+*api_key*
+*token*
+*secret*
+
+# ============== Testing & CI ==============
+test-results/
+coverage/
+.nyc_output/
+
+# ============== Build & Deploy ==============
+dist/
+build/
+out/
+*.zip
+*.tar.gz
+*.7z
+
+# ============== Documentation Build ==============
+docs/_build/
+site/
+
+# ============== Misc ==============
+.history/
+.cache/

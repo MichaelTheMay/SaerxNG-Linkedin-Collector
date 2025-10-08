@@ -1,0 +1,106 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        powershell-version: ['5.1', '7.x']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PowerShell ${{ matrix.powershell-version }}
+      uses: actions/setup-powershell@v1
+      if: matrix.powershell-version == '7.x'
+      with:
+        powershell-version: ${{ matrix.powershell-version }}
+        
+    - name: Validate script syntax
+      shell: pwsh
+      run: |
+        Write-Host "Testing with PowerShell version: $($PSVersionTable.PSVersion)"
+        
+        $scripts = @(
+          "ScriptQueries.ps1",
+          "ScriptQueriesParallel.ps1",
+          "SearxQueriesUI.ps1",
+          "SearxHelpers.psm1"
+        )
+        
+        foreach ($script in $scripts) {
+          Write-Host "`nValidating $script..."
+          try {
+            Get-Command -Syntax ".\$script" -ErrorAction Stop
+            Write-Host "✓ $script syntax OK" -ForegroundColor Green
+          }
+          catch {
+            Write-Error "✗ $script syntax error: $_"
+            exit 1
+          }
+        }
+        
+    - name: Test module import
+      shell: pwsh
+      run: |
+        Write-Host "Testing module import..."
+        Import-Module ".\SearxHelpers.psm1" -Force
+        
+        $functions = @(
+          'Format-LinkedInURL',
+          'Test-URLValid',
+          'Get-CacheKey',
+          'Import-KeywordFile',
+          'Export-KeywordFile'
+        )
+        
+        foreach ($func in $functions) {
+          if (Get-Command $func -ErrorAction SilentlyContinue) {
+            Write-Host "✓ $func available" -ForegroundColor Green
+          } else {
+            Write-Error "✗ $func not found"
+            exit 1
+          }
+        }
+        
+    - name: Verify directory structure
+      shell: pwsh
+      run: |
+        $requiredDirs = @('results', 'reports', 'logs', 'cache', 'exports')
+        
+        foreach ($dir in $requiredDirs) {
+          if (Test-Path $dir) {
+            Write-Host "✓ $dir directory exists" -ForegroundColor Green
+          } else {
+            Write-Host "Creating $dir directory..."
+            New-Item -ItemType Directory -Path $dir | Out-Null
+          }
+        }
+        
+    - name: Check for required files
+      shell: pwsh
+      run: |
+        $requiredFiles = @(
+          'README.md',
+          'LICENSE',
+          'CHANGELOG.md',
+          'CONTRIBUTING.md',
+          '.gitignore'
+        )
+        
+        foreach ($file in $requiredFiles) {
+          if (Test-Path $file) {
+            Write-Host "✓ $file exists" -ForegroundColor Green
+          } else {
+            Write-Error "✗ $file missing"
+            exit 1
+          }
+        }
+

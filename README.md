@@ -1,13 +1,20 @@
-# 🚀 SearxNG LinkedIn Collector v2.1
+# 🚀 SearxNG LinkedIn Collector
 
-Powerful PowerShell tool for collecting LinkedIn profiles via SearxNG's privacy-focused metasearch engine.
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/yourusername/SearxQueries)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://github.com/PowerShell/PowerShell)
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](.github/PULL_REQUEST_TEMPLATE.md)
 
-**✨ NEW:** Graphical UI for keyword management and search execution!
+> Powerful PowerShell tool for collecting LinkedIn profiles via SearxNG's privacy-focused metasearch engine.
+
+**✨ NEW in v2.2:** Parallel execution & real-time progress tracking!
 
 ## 🧭 Quick Links
 
 - **First time?** → [QUICK_START.md](QUICK_START.md)
 - **Using UI?** → [UI_GUIDE.md](UI_GUIDE.md)
+- **Parallel execution?** → [PARALLEL_EXECUTION_GUIDE.md](PARALLEL_EXECUTION_GUIDE.md)
 - **What's new?** → [CHANGELOG.md](CHANGELOG.md)
 - **All files?** → [FILES_OVERVIEW.md](FILES_OVERVIEW.md)
 
@@ -24,13 +31,15 @@ Powerful PowerShell tool for collecting LinkedIn profiles via SearxNG's privacy-
 
 ## ✨ Key Features
 
-### UI Edition
+### UI Edition (NEW in v2.2!)
 - 🎨 **Visual keyword editor** - Add, edit, delete, filter keywords
 - 📂 **File management** - Load/save keyword sets
 - 🔄 **Permutation generator** - Create 500+ keyword variations
 - ⚙️ **Visual config** - All settings in one panel
-- 📊 **Progress tracking** - Real-time output console
+- 📊 **Real-time progress bar** - Visual progress tracking with percentage
+- ⚡ **Parallel execution** - Run multiple searches simultaneously (3-5x faster!)
 - 🚀 **Background execution** - UI stays responsive
+- 🎛️ **Throttle control** - Configure max concurrent threads
 
 ### Core Features
 - **Complete pagination** - Scrape all results (10-50x more data)
@@ -235,11 +244,27 @@ Free to use and modify. No warranty. Use at your own risk.
 - SearxNG: Running instance with JSON enabled
 - .NET: Framework 4.5+ (pre-installed)
 
+## 🤝 Contributing
+
+We welcome contributions! Please see:
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
+- [CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md) - Community standards
+- [GITHUB_SETUP.md](GITHUB_SETUP.md) - Repository setup guide
+
+## 🔒 Security
+
+Found a security issue? Please see [SECURITY.md](.github/SECURITY.md) for responsible disclosure.
+
+## 📞 Support
+
+- **Issues:** [GitHub Issues](https://github.com/yourusername/SearxQueries/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/yourusername/SearxQueries/discussions)
+
 ---
 
-**Version**: 2.1.2  
+**Version**: 2.2.0  
 **Release**: October 8, 2025  
-**Author**: SearxNG Community  
-**Performance**: ⚡ 35% faster, 💾 33% less memory
+**License**: MIT  
+**Performance**: ⚡ 3-5x faster with parallel execution
 
-**Happy searching! 🔍**
+Made with ❤️ by the SearxNG LinkedIn Collector community

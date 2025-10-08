@@ -173,6 +173,7 @@ $xaml = @"
                                 <CheckBox Name="UseCacheCheck" Content="Use Cache" IsChecked="True" Margin="5"/>
                                 <CheckBox Name="OpenResultsCheck" Content="Auto-open Results" IsChecked="True" Margin="5"/>
                                 <CheckBox Name="VerboseCheck" Content="Verbose Output" IsChecked="False" Margin="5"/>
+                                <CheckBox Name="ParallelCheck" Content="⚡ Parallel Execution" IsChecked="True" Margin="5"/>
                                 
                                 <Label Content="Export Format:" FontSize="11"/>
                                 <ComboBox Name="ExportFormatCombo" SelectedIndex="0" Margin="5">
@@ -182,6 +183,9 @@ $xaml = @"
                                     <ComboBoxItem Content="TXT"/>
                                     <ComboBoxItem Content="HTML"/>
                                 </ComboBox>
+                                
+                                <Label Content="Parallel Threads:" FontSize="11"/>
+                                <TextBox Name="ThrottleLimitBox" Text="5"/>
                                 
                                 <Label Content="Delay (seconds):" FontSize="11"/>
                                 <TextBox Name="DelayBox" Text="2"/>
@@ -207,20 +211,46 @@ $xaml = @"
         <!-- Action Buttons -->
         <Border Grid.Row="2" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,10">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Name="StatusText" Text="Ready" FontSize="12" VerticalAlignment="Center" Margin="10,0"/>
-                </StackPanel>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Name="StatusText" Text="Ready" FontSize="12" VerticalAlignment="Center" Margin="10,0"/>
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Name="TestConnectionBtn" Content="🔌 Test Connection" Width="140" Background="#17A2B8"/>
+                        <Button Name="RunSearchBtn" Content="▶️ Run Search" Width="140" FontSize="14" Background="#28A745"/>
+                        <Button Name="StopSearchBtn" Content="⏹️ Stop" Width="80" Background="#DC3545" IsEnabled="False"/>
+                    </StackPanel>
+                </Grid>
                 
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Name="TestConnectionBtn" Content="🔌 Test Connection" Width="140" Background="#17A2B8"/>
-                    <Button Name="RunSearchBtn" Content="▶️ Run Search" Width="140" FontSize="14" Background="#28A745"/>
-                    <Button Name="StopSearchBtn" Content="⏹️ Stop" Width="80" Background="#DC3545" IsEnabled="False"/>
-                </StackPanel>
+                <!-- Progress Bar -->
+                <Grid Grid.Row="1" Margin="10,10,10,0" Name="ProgressPanel" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="ProgressText" Text="" FontSize="11" Foreground="#666"/>
+                        <TextBlock Grid.Column="1" Name="ProgressPercent" Text="0%" FontSize="11" FontWeight="Bold" Foreground="#0077B5"/>
+                    </Grid>
+                    
+                    <ProgressBar Grid.Row="1" Name="ProgressBar" Height="20" Minimum="0" Maximum="100" Value="0" Margin="0,5,0,0"/>
+                </Grid>
             </Grid>
         </Border>
         
@@ -275,7 +305,9 @@ $workDirBox = $window.FindName("WorkDirBox")
 $useCacheCheck = $window.FindName("UseCacheCheck")
 $openResultsCheck = $window.FindName("OpenResultsCheck")
 $verboseCheck = $window.FindName("VerboseCheck")
+$parallelCheck = $window.FindName("ParallelCheck")
 $exportFormatCombo = $window.FindName("ExportFormatCombo")
+$throttleLimitBox = $window.FindName("ThrottleLimitBox")
 $delayBox = $window.FindName("DelayBox")
 $maxRetriesBox = $window.FindName("MaxRetriesBox")
 
@@ -292,6 +324,10 @@ $statusText = $window.FindName("StatusText")
 $keywordCountText = $window.FindName("KeywordCountText")
 $selectedCountText = $window.FindName("SelectedCountText")
 $clearConsoleBtn = $window.FindName("ClearConsoleBtn")
+$progressPanel = $window.FindName("ProgressPanel")
+$progressBar = $window.FindName("ProgressBar")
+$progressText = $window.FindName("ProgressText")
+$progressPercent = $window.FindName("ProgressPercent")
 
 # ============== GLOBAL STATE ==============
 $script:keywords = New-Object System.Collections.ObjectModel.ObservableCollection[string]
@@ -299,6 +335,8 @@ $script:allKeywords = @()
 $script:isSearchRunning = $false
 $script:searchJob = $null
 $script:timer = $null
+$script:progressFile = $null
+$script:lastProgressUpdate = [DateTime]::MinValue
 
 # ============== HELPER FUNCTIONS ==============
 
@@ -320,6 +358,35 @@ function Update-KeywordCount {
 function Update-Status {
     param([string]$Message)
     $window.Dispatcher.Invoke([action]{ $statusText.Text = $Message })
+}
+
+function Update-Progress {
+    param(
+        [int]$Current,
+        [int]$Total,
+        [string]$Activity
+    )
+    $window.Dispatcher.Invoke([action]{
+        $percent = if ($Total -gt 0) { [math]::Round(($Current / $Total) * 100) } else { 0 }
+        $progressBar.Value = $percent
+        $progressPercent.Text = "$percent%"
+        $progressText.Text = "$Activity ($Current/$Total)"
+    })
+}
+
+function Show-Progress {
+    $window.Dispatcher.Invoke([action]{
+        $progressPanel.Visibility = [System.Windows.Visibility]::Visible
+        $progressBar.Value = 0
+        $progressPercent.Text = "0%"
+        $progressText.Text = "Starting..."
+    })
+}
+
+function Hide-Progress {
+    $window.Dispatcher.Invoke([action]{
+        $progressPanel.Visibility = [System.Windows.Visibility]::Collapsed
+    })
 }
 
 function Refresh-KeywordsList {
@@ -615,19 +682,30 @@ $runSearchBtn.Add_Click({
         
         Write-Console "========================================="
         Write-Console "Starting search with $($keywordsToSearch.Count) keywords..."
+        if ($parallelCheck.IsChecked) {
+            Write-Console "Mode: PARALLEL (max $($throttleLimitBox.Text) threads)"
+        } else {
+            Write-Console "Mode: SEQUENTIAL"
+        }
         Write-Console "========================================="
         Update-Status "Search running..."
+        Show-Progress
         
-        # Build command arguments
-        $scriptPath = Join-Path $PSScriptRoot "ScriptQueries.ps1"
+        # Decide which script to use
+        $useParallel = $parallelCheck.IsChecked
+        $scriptPath = Join-Path $PSScriptRoot $(if ($useParallel) { "ScriptQueriesParallel.ps1" } else { "ScriptQueries.ps1" })
         
         if (-not (Test-Path $scriptPath)) {
-            [System.Windows.MessageBox]::Show("ScriptQueries.ps1 not found in current directory.", "Error", "OK", "Error")
+            [System.Windows.MessageBox]::Show("$([System.IO.Path]::GetFileName($scriptPath)) not found in current directory.", "Error", "OK", "Error")
             $script:isSearchRunning = $false
             $runSearchBtn.IsEnabled = $true
             $stopSearchBtn.IsEnabled = $false
+            Hide-Progress
             return
         }
+        
+        # Create progress file
+        $script:progressFile = [System.IO.Path]::Combine($env:TEMP, "searxng_progress_$([DateTime]::Now.Ticks).json")
         
         # Build hashtable for splatting
         $searchParams = @{
@@ -637,6 +715,12 @@ $runSearchBtn.Add_Click({
             ExportFormat = $exportFormatCombo.SelectedItem.Content.ToString()
             DelaySeconds = [int]$delayBox.Text
             MaxRetries = [int]$maxRetriesBox.Text
+            ProgressFile = $script:progressFile
+        }
+        
+        if ($useParallel) {
+            $searchParams['Parallel'] = $true
+            $searchParams['ThrottleLimit'] = [int]$throttleLimitBox.Text
         }
         
         if ($useCacheCheck.IsChecked) { $searchParams['UseCache'] = $true }
@@ -649,10 +733,29 @@ $runSearchBtn.Add_Click({
             & $scriptPath @params
         } -ArgumentList $scriptPath, $searchParams
         
-        # Monitor job
+        # Monitor job and progress
         $script:timer = New-Object System.Windows.Threading.DispatcherTimer
-        $script:timer.Interval = [TimeSpan]::FromSeconds(1)
+        $script:timer.Interval = [TimeSpan]::FromMilliseconds(500)
+        $script:lastProgressUpdate = [DateTime]::MinValue
+        
         $script:timer.Add_Tick({
+            # Check for progress updates
+            if (Test-Path $script:progressFile) {
+                try {
+                    $fileAge = (Get-Date) - (Get-Item $script:progressFile).LastWriteTime
+                    if ($fileAge.TotalMilliseconds -lt 2000) {
+                        $progressData = Get-Content $script:progressFile -Raw | ConvertFrom-Json
+                        if ($progressData -and $progressData.Current -and $progressData.Total) {
+                            Update-Progress -Current $progressData.Current -Total $progressData.Total -Activity $progressData.Activity
+                        }
+                    }
+                }
+                catch {
+                    # Ignore progress file read errors
+                }
+            }
+            
+            # Check job state
             if ($script:searchJob.State -eq "Completed") {
                 $script:timer.Stop()
                 
@@ -665,8 +768,14 @@ $runSearchBtn.Add_Click({
                 $script:searchJob = $null
                 $script:isSearchRunning = $false
                 
+                # Cleanup progress file
+                if (Test-Path $script:progressFile) {
+                    Remove-Item $script:progressFile -Force -ErrorAction SilentlyContinue
+                }
+                
                 $runSearchBtn.IsEnabled = $true
                 $stopSearchBtn.IsEnabled = $false
+                Hide-Progress
                 
                 Write-Console "========================================="
                 Write-Console "Search completed!"
@@ -685,8 +794,14 @@ $runSearchBtn.Add_Click({
                 $script:searchJob = $null
                 $script:isSearchRunning = $false
                 
+                # Cleanup progress file
+                if (Test-Path $script:progressFile) {
+                    Remove-Item $script:progressFile -Force -ErrorAction SilentlyContinue
+                }
+                
                 $runSearchBtn.IsEnabled = $true
                 $stopSearchBtn.IsEnabled = $false
+                Hide-Progress
                 Update-Status "Search failed"
                 
                 [System.Windows.MessageBox]::Show("Search failed: $error", "Search Error", "OK", "Error")
@@ -707,8 +822,15 @@ $stopSearchBtn.Add_Click({
         Remove-Job -Job $script:searchJob -Force
         $script:searchJob = $null
         $script:isSearchRunning = $false
+        
+        # Cleanup progress file
+        if ($script:progressFile -and (Test-Path $script:progressFile)) {
+            Remove-Item $script:progressFile -Force -ErrorAction SilentlyContinue
+        }
+        
         $runSearchBtn.IsEnabled = $true
         $stopSearchBtn.IsEnabled = $false
+        Hide-Progress
         Write-Console "Search stopped by user"
         Update-Status "Search stopped"
     }
