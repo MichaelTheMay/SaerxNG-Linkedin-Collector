@@ -1,3 +1,4 @@
+
 # Shared Types and Utilities
 
 This directory contains shared TypeScript types and utilities used by both the API server and React UI.

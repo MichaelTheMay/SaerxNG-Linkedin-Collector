@@ -48,6 +48,15 @@ import {
   Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon,
   Add as AddIcon,
+  Download as DownloadIcon,
+  Upload as UploadIcon,
+  TableChart as TableChartIcon,
+  ViewList as ViewListIcon,
+  FilterList as FilterListIcon,
+  Sort as SortIcon,
+  OpenInNew as OpenInNewIcon,
+  ContentCopy as ContentCopyIcon,
+  Share as ShareIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Clear as ClearIcon,
@@ -88,8 +97,6 @@ function App() {
   const [filteredKeywords, setFilteredKeywords] = useState<string[]>([]);
   const [selectedKeywords, setSelectedKeywords] = useState<Set<string>>(new Set());
   const [filterText, setFilterText] = useState('');
-  const [isSearchRunning, setIsSearchRunning] = useState(false);
-  const [searchProgress, setSearchProgress] = useState<SearchProgress | null>(null);
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState('Ready');
   const [showQueryBuilder, setShowQueryBuilder] = useState(false);
@@ -119,9 +126,34 @@ function App() {
 
   // Results state
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [resultsMetadata, setResultsMetadata] = useState<any>(null);
+  const [resultsStatistics, setResultsStatistics] = useState<any>(null);
+  const [resultsFileInfo, setResultsFileInfo] = useState<any>(null);
+  const [allResultFiles, setAllResultFiles] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<'list' | 'table'>('list');
+  const [sortBy, setSortBy] = useState<'title' | 'url' | 'keyword' | 'engine'>('title');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterEngine, setFilterEngine] = useState<string>('');
+  const [filterKeyword, setFilterKeyword] = useState<string>('');
+  const [selectedResults, setSelectedResults] = useState<Set<number>>(new Set());
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [searchProgress, setSearchProgress] = useState<{
+    currentKeyword: string;
+    currentIndex: number;
+    totalKeywords: number;
+    resultsFound: number;
+    status: string;
+    percentage: number;
+    startTime?: string;
+    endTime?: string;
+  } | null>(null);
+  const [isSearchRunning, setIsSearchRunning] = useState(false);
 
   useEffect(() => {
     loadKeywords();
+    loadComprehensiveResults(); // Load existing results on startup
   }, []);
 
   useEffect(() => {
@@ -165,6 +197,143 @@ function App() {
   const addToConsole = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setConsoleOutput(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
+
+  // Load comprehensive results
+  const loadComprehensiveResults = async () => {
+    try {
+      const response = await fetch('/api/results');
+      const data = await response.json();
+      
+      if (data.results) {
+        setResults(data.results);
+        setResultsMetadata(data.metadata);
+        setResultsStatistics(data.statistics);
+        setResultsFileInfo(data.fileInfo);
+        setAllResultFiles(data.allFiles || []);
+        addToConsole(`Loaded ${data.results.length} results from ${data.fileInfo?.name || 'latest file'}`);
+      }
+    } catch (error) {
+      console.error('Error loading results:', error);
+      addToConsole('Error loading comprehensive results');
+    }
+  };
+
+  // Import data from file
+  const handleImportData = async () => {
+    if (!importFile) return;
+
+    try {
+      const text = await importFile.text();
+      const format = importFile.name.endsWith('.csv') ? 'csv' : 'json';
+      
+      console.log('Importing file:', importFile.name, 'Format:', format, 'Size:', text.length);
+      
+      const response = await fetch('/api/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: text,
+          filename: importFile.name,
+          format: format
+        })
+      });
+
+      const result = await response.json();
+      console.log('Import response:', result);
+      
+      if (result.success) {
+        setSnackbar({ 
+          open: true, 
+          message: `Imported ${result.imported} results successfully!`, 
+          severity: 'success' 
+        });
+        setShowImportDialog(false);
+        setImportFile(null);
+        loadComprehensiveResults(); // Reload results
+        addToConsole(`Imported ${result.imported} results from ${importFile.name}`);
+      } else {
+        throw new Error(result.details || result.error || 'Import failed');
+      }
+    } catch (error: any) {
+      console.error('Import error:', error);
+      setSnackbar({ 
+        open: true, 
+        message: `Failed to import data: ${error.message}`, 
+        severity: 'error' 
+      });
+      addToConsole(`Import failed: ${error.message}`);
+    }
+  };
+
+  // Export data
+  const handleExportData = async (format: string) => {
+    try {
+      const exportData = {
+        results: results,
+        metadata: resultsMetadata,
+        statistics: resultsStatistics,
+        fileInfo: resultsFileInfo
+      };
+
+      const response = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          format: format,
+          data: exportData,
+          filename: `searx_results_${new Date().toISOString().split('T')[0]}`
+        })
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `searx_results_${new Date().toISOString().split('T')[0]}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        setSnackbar({ open: true, message: `Data exported as ${format.toUpperCase()} successfully!`, severity: 'success' });
+        setShowExportDialog(false);
+      } else {
+        throw new Error('Export failed');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      setSnackbar({ open: true, message: 'Failed to export data', severity: 'error' });
+    }
+  };
+
+  // Filter and sort results
+  const getFilteredAndSortedResults = () => {
+    let filtered = results.filter(result => {
+      if (filterEngine && result.engine !== filterEngine) return false;
+      if (filterKeyword && !result.keyword.toLowerCase().includes(filterKeyword.toLowerCase())) return false;
+      return true;
+    });
+
+    filtered.sort((a, b) => {
+      const aVal = a[sortBy] || '';
+      const bVal = b[sortBy] || '';
+      const comparison = aVal.toString().localeCompare(bVal.toString());
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  };
+
+  // Copy URL to clipboard
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setSnackbar({ open: true, message: 'Copied to clipboard!', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Failed to copy to clipboard', severity: 'error' });
+    }
   };
 
   const handleKeywordToggle = (keyword: string) => {
@@ -243,6 +412,15 @@ function App() {
 
     setIsSearchRunning(true);
     setStatusMessage("Search running...");
+    setSearchProgress({
+      currentKeyword: '',
+      currentIndex: 0,
+      totalKeywords: keywordsToSearch.length,
+      resultsFound: 0,
+      status: 'Starting...',
+      percentage: 0,
+      startTime: new Date().toISOString()
+    });
     addToConsole("=".repeat(40));
     addToConsole("SEARCH CONFIGURATION");
     addToConsole("=".repeat(40));
@@ -253,52 +431,103 @@ function App() {
     addToConsole("Starting search operation...");
 
     try {
-      // Call the direct SearxNG API
-      const response = await api.runSearch({
-        keywords: keywordsToSearch,
-        searxUrl,
-        useCache,
-        openResults,
-        verbose,
-        parallel,
-        throttleLimit,
-        delay,
-        maxRetries
+      // Use Server-Sent Events for real-time progress
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          keywords: keywordsToSearch,
+          searxUrl,
+          useCache,
+          openResults,
+          verbose,
+          parallel,
+          throttleLimit,
+          delay,
+          maxRetries,
+          exportFormat: 'ALL'
+        })
       });
 
-      if (response.success) {
-        addToConsole("✓ Search completed successfully!");
-        if (response.output) {
-          response.output.split('\n').forEach(line => addToConsole(line));
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'complete') {
+                // Search completed
+                if (data.success) {
+                  addToConsole("✓ Search completed successfully!");
+                  if (data.output) {
+                    data.output.split('\n').forEach((line: string) => addToConsole(line));
+                  }
+                  if (data.results) {
+                    setResults(data.results);
+                    addToConsole(`Found ${data.results.length} results`);
+                    // Load comprehensive results to get metadata and statistics
+                    setTimeout(() => loadComprehensiveResults(), 1000);
+                  }
+                  setStatusMessage("Search completed");
+                  setSnackbar({ open: true, message: 'Search completed successfully!', severity: 'success' });
+                  setActiveTab(1); // Switch to results tab
+                } else {
+                  addToConsole(`ERROR: ${data.error || 'Search failed'}`);
+                  setStatusMessage("Search failed");
+                  setSnackbar({ open: true, message: `Search failed: ${data.error}`, severity: 'error' });
+                }
+                setIsSearchRunning(false);
+                setSearchProgress(prev => prev ? { ...prev, endTime: new Date().toISOString() } : null);
+              } else {
+                // Progress update
+                setSearchProgress(data);
+                addToConsole(data.status);
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
         }
-        if (response.results) {
-          setResults(response.results);
-          addToConsole(`Found ${response.results.length} results`);
-        }
-        setStatusMessage("Search completed");
-        setSnackbar({ open: true, message: 'Search completed successfully!', severity: 'success' });
-        setActiveTab(1); // Switch to results tab
-      } else {
-        addToConsole(`ERROR: ${response.error || 'Search failed'}`);
-        setStatusMessage("Search failed");
-        setSnackbar({ open: true, message: response.error || 'Search failed', severity: 'error' });
       }
     } catch (error: any) {
       addToConsole(`ERROR: Search failed - ${error.message}`);
       setStatusMessage("Search failed");
       setSnackbar({ open: true, message: `Search failed: ${error.message}`, severity: 'error' });
-    } finally {
       setIsSearchRunning(false);
-      setSearchProgress(null);
+      setSearchProgress(prev => prev ? { ...prev, endTime: new Date().toISOString() } : null);
+    } finally {
+      addToConsole("=".repeat(40));
     }
   };
 
   const simulateSearch = async (keywordsToSearch: string[]) => {
     for (let i = 0; i < keywordsToSearch.length; i++) {
       setSearchProgress({
-        current: i + 1,
-        total: keywordsToSearch.length,
-        activity: `Searching: ${keywordsToSearch[i]}`
+        currentKeyword: keywordsToSearch[i],
+        currentIndex: i + 1,
+        totalKeywords: keywordsToSearch.length,
+        resultsFound: 0,
+        status: `Searching: ${keywordsToSearch[i]}`,
+        percentage: Math.round(((i + 1) / keywordsToSearch.length) * 100)
       });
 
       // Simulate API call delay
@@ -668,27 +897,54 @@ function App() {
                       </Button>
                     </Box>
 
-                    {searchProgress && (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {searchProgress.activity} ({searchProgress.current}/{searchProgress.total})
-                        </Typography>
-                        <Box sx={{ width: '100%', mt: 1 }}>
-                          <Box
-                            sx={{
-                              width: `${(searchProgress.current / searchProgress.total) * 100}%`,
-                              height: 8,
-                              backgroundColor: 'primary.main',
-                              borderRadius: 4,
-                            }}
-                          />
-                        </Box>
-                      </Box>
-                    )}
 
                     <Typography variant="h6" gutterBottom>
                       📺 Output Console
                     </Typography>
+                    
+                    {/* Dynamic Progress Bar */}
+                    {searchProgress && (
+                      <Box sx={{ mb: 2, p: 2, bgcolor: 'primary.light', borderRadius: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="subtitle2" color="primary.contrastText">
+                            {searchProgress.status}
+                          </Typography>
+                          <Typography variant="body2" color="primary.contrastText">
+                            {searchProgress.percentage}%
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ width: '100%', bgcolor: 'rgba(255,255,255,0.3)', borderRadius: 1, mb: 1 }}>
+                          <Box
+                            sx={{
+                              width: `${searchProgress.percentage}%`,
+                              height: 8,
+                              bgcolor: 'primary.main',
+                              borderRadius: 1,
+                              transition: 'width 0.3s ease-in-out',
+                            }}
+                          />
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="caption" color="primary.contrastText">
+                            Keyword {searchProgress.currentIndex} of {searchProgress.totalKeywords}
+                            {searchProgress.currentKeyword && `: ${searchProgress.currentKeyword}`}
+                          </Typography>
+                          <Typography variant="caption" color="primary.contrastText">
+                            Results: {searchProgress.resultsFound}
+                          </Typography>
+                        </Box>
+                        
+                        {searchProgress.startTime && (
+                          <Typography variant="caption" color="primary.contrastText" sx={{ display: 'block', mt: 1 }}>
+                            Started: {new Date(searchProgress.startTime).toLocaleTimeString()}
+                            {searchProgress.endTime && ` | Completed: ${new Date(searchProgress.endTime).toLocaleTimeString()}`}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                    
                     <Box
                       sx={{
                         height: 200,
@@ -737,47 +993,254 @@ function App() {
 
                 <Box>
                   <Paper sx={{ p: 2 }}>
-                    <Typography variant="h6" gutterBottom>
-                      📊 Search Results
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6">
+                        📊 Search Results
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<UploadIcon />}
+                          onClick={() => setShowImportDialog(true)}
+                        >
+                          Import
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<DownloadIcon />}
+                          onClick={() => setShowExportDialog(true)}
+                          disabled={results.length === 0}
+                        >
+                          Export
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<RefreshIcon />}
+                          onClick={loadComprehensiveResults}
+                        >
+                          Refresh
+                        </Button>
+                      </Box>
+                    </Box>
+
+                    {/* Results Statistics */}
+                    {resultsStatistics && (
+                      <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                        <Typography variant="subtitle2" gutterBottom>Session Statistics</Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                          <Box sx={{ minWidth: 120 }}>
+                            <Typography variant="body2" color="text.secondary">Total Results</Typography>
+                            <Typography variant="h6">{resultsStatistics.totalResults || results.length}</Typography>
+                          </Box>
+                          <Box sx={{ minWidth: 120 }}>
+                            <Typography variant="body2" color="text.secondary">Unique URLs</Typography>
+                            <Typography variant="h6">{resultsStatistics.uniqueUrls || new Set(results.map(r => r.url)).size}</Typography>
+                          </Box>
+                          <Box sx={{ minWidth: 120 }}>
+                            <Typography variant="body2" color="text.secondary">Keywords Used</Typography>
+                            <Typography variant="h6">{resultsStatistics.keywordsUsed || new Set(results.map(r => r.keyword)).size}</Typography>
+                          </Box>
+                          <Box sx={{ minWidth: 120 }}>
+                            <Typography variant="body2" color="text.secondary">Engines</Typography>
+                            <Typography variant="h6">{resultsStatistics.enginesUsed || new Set(results.map(r => r.engine)).size}</Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* File Information */}
+                    {resultsFileInfo && (
+                      <Box sx={{ mb: 2, p: 1, bgcolor: 'info.light', borderRadius: 1 }}>
+                        <Typography variant="body2">
+                          📁 Data from: {resultsFileInfo.name} 
+                          {resultsFileInfo.modified && ` (${new Date(resultsFileInfo.modified).toLocaleString()})`}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Controls */}
+                    {results.length > 0 && (
+                      <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                          <InputLabel>View Mode</InputLabel>
+                          <Select
+                            value={viewMode}
+                            label="View Mode"
+                            onChange={(e) => setViewMode(e.target.value as 'list' | 'table')}
+                          >
+                            <MenuItem value="list">List View</MenuItem>
+                            <MenuItem value="table">Table View</MenuItem>
+                          </Select>
+                        </FormControl>
+
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                          <InputLabel>Sort By</InputLabel>
+                          <Select
+                            value={sortBy}
+                            label="Sort By"
+                            onChange={(e) => setSortBy(e.target.value as any)}
+                          >
+                            <MenuItem value="title">Title</MenuItem>
+                            <MenuItem value="url">URL</MenuItem>
+                            <MenuItem value="keyword">Keyword</MenuItem>
+                            <MenuItem value="engine">Engine</MenuItem>
+                          </Select>
+                        </FormControl>
+
+                        <Button
+                          size="small"
+                          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                          startIcon={<SortIcon />}
+                        >
+                          {sortOrder === 'asc' ? '↑' : '↓'}
+                        </Button>
+
+                        <TextField
+                          size="small"
+                          label="Filter by Engine"
+                          value={filterEngine}
+                          onChange={(e) => setFilterEngine(e.target.value)}
+                          sx={{ minWidth: 150 }}
+                        />
+
+                        <TextField
+                          size="small"
+                          label="Filter by Keyword"
+                          value={filterKeyword}
+                          onChange={(e) => setFilterKeyword(e.target.value)}
+                          sx={{ minWidth: 150 }}
+                        />
+
+                        <Button
+                          size="small"
+                          onClick={() => {
+                            setFilterEngine('');
+                            setFilterKeyword('');
+                          }}
+                        >
+                          Clear Filters
+                        </Button>
+                      </Box>
+                    )}
+
+                    {/* Results Display */}
                     {results.length === 0 ? (
                       <Typography color="text.secondary">
-                        No results loaded yet. Run a search to see results here.
+                        No results loaded yet. Run a search or import data to see results here.
                       </Typography>
                     ) : (
                       <Box>
                         <Typography variant="subtitle1" gutterBottom>
-                          Found {results.length} profiles
+                          Showing {getFilteredAndSortedResults().length} of {results.length} results
                         </Typography>
-                        {results.map((result, index) => (
-                          <Card key={index} sx={{ mb: 1 }}>
-                            <CardContent sx={{ pb: '16px !important' }}>
-                              <Typography variant="h6" component="div">
-                                {result.title}
-                              </Typography>
-                              <Typography
-                                component="a"
-                                href={result.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                sx={{ color: 'primary.main', textDecoration: 'none' }}
-                              >
-                                {result.url}
-                              </Typography>
-                              <Box sx={{ mt: 1 }}>
-                                <Chip
-                                  label={`Keyword: ${result.keyword}`}
-                                  size="small"
-                                  sx={{ mr: 1 }}
-                                />
-                                <Chip
-                                  label={`Engine: ${result.engine}`}
-                                  size="small"
-                                />
-                              </Box>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        
+                        {viewMode === 'list' ? (
+                          <Box>
+                            {getFilteredAndSortedResults().map((result, index) => (
+                              <Card key={index} sx={{ mb: 1 }}>
+                                <CardContent sx={{ pb: '16px !important' }}>
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <Box sx={{ flex: 1 }}>
+                                      <Typography variant="h6" component="div" sx={{ mb: 1 }}>
+                                        {result.title}
+                                      </Typography>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                        <Typography
+                                          component="a"
+                                          href={result.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          sx={{ color: 'primary.main', textDecoration: 'none', flex: 1 }}
+                                        >
+                                          {result.url}
+                                        </Typography>
+                                        <Button
+                                          size="small"
+                                          onClick={() => copyToClipboard(result.url)}
+                                          startIcon={<ContentCopyIcon />}
+                                        >
+                                          Copy
+                                        </Button>
+                                        <Button
+                                          size="small"
+                                          component="a"
+                                          href={result.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          startIcon={<OpenInNewIcon />}
+                                        >
+                                          Open
+                                        </Button>
+                                      </Box>
+                                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                        <Chip
+                                          label={`Keyword: ${result.keyword}`}
+                                          size="small"
+                                          color="primary"
+                                          variant="outlined"
+                                        />
+                                        <Chip
+                                          label={`Engine: ${result.engine}`}
+                                          size="small"
+                                          color="secondary"
+                                          variant="outlined"
+                                        />
+                                        {(result as any).content && (
+                                          <Chip
+                                            label={`Content: ${(result as any).content.substring(0, 50)}...`}
+                                            size="small"
+                                            color="default"
+                                            variant="outlined"
+                                          />
+                                        )}
+                                      </Box>
+                                    </Box>
+                                  </Box>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </Box>
+                        ) : (
+                          <Box sx={{ overflow: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                              <thead>
+                                <tr style={{ backgroundColor: '#f5f5f5' }}>
+                                  <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #ddd' }}>Title</th>
+                                  <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #ddd' }}>URL</th>
+                                  <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #ddd' }}>Keyword</th>
+                                  <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #ddd' }}>Engine</th>
+                                  <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #ddd' }}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {getFilteredAndSortedResults().map((result, index) => (
+                                  <tr key={index}>
+                                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>{result.title}</td>
+                                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                                      <a href={result.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2' }}>
+                                        {result.url}
+                                      </a>
+                                    </td>
+                                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>{result.keyword}</td>
+                                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>{result.engine}</td>
+                                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                                      <Button
+                                        size="small"
+                                        onClick={() => copyToClipboard(result.url)}
+                                        startIcon={<ContentCopyIcon />}
+                                      >
+                                        Copy
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </Box>
+                        )}
                       </Box>
                     )}
                   </Paper>
@@ -877,6 +1340,98 @@ function App() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setShowUsageGuide(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Import Dialog */}
+        <Dialog
+          open={showImportDialog}
+          onClose={() => setShowImportDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <UploadIcon color="primary" />
+              <Typography variant="h6">Import Data</Typography>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Import search results from a JSON or CSV file. The file should contain search results with fields like title, url, keyword, and engine.
+            </Typography>
+            <input
+              type="file"
+              accept=".json,.csv"
+              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              style={{ marginBottom: 16 }}
+            />
+            {importFile && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Typography variant="body2">
+                  Selected file: {importFile.name} ({(importFile.size / 1024).toFixed(1)} KB)
+                </Typography>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowImportDialog(false)}>Cancel</Button>
+            <Button 
+              onClick={handleImportData} 
+              variant="contained"
+              disabled={!importFile}
+            >
+              Import
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Export Dialog */}
+        <Dialog
+          open={showExportDialog}
+          onClose={() => setShowExportDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <DownloadIcon color="primary" />
+              <Typography variant="h6">Export Data</Typography>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Export your search results in various formats. Choose the format that best suits your needs.
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<TableChartIcon />}
+                onClick={() => handleExportData('csv')}
+                fullWidth
+              >
+                Export as CSV
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<ViewListIcon />}
+                onClick={() => handleExportData('json')}
+                fullWidth
+              >
+                Export as JSON
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<ViewListIcon />}
+                onClick={() => handleExportData('txt')}
+                fullWidth
+              >
+                Export URLs as Text
+              </Button>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowExportDialog(false)}>Close</Button>
           </DialogActions>
         </Dialog>
 
