@@ -1,0 +1,26 @@
+[2025-10-08 02:37:56] [INFO] Script started with parameters: SearxURL=http://localhost:8888, WorkDir=C:\SearxQueries, UseCache=True
+[2025-10-08 02:37:56] [INFO] Selected 8 keywords for search
+[2025-10-08 02:37:57] [SUCCESS] SearxNG connection test successful
+[2025-10-08 02:37:57] [INFO] Executing query: site:linkedin.com Stanford Computer Science
+[2025-10-08 02:37:58] [SUCCESS] Query successful: 16 results added
+[2025-10-08 02:38:00] [INFO] Executing query: site:linkedin.com Stanford CS
+[2025-10-08 02:38:01] [SUCCESS] Query successful: 21 results added
+[2025-10-08 02:38:03] [INFO] Executing query: site:linkedin.com Stanford Artificial Intelligence
+[2025-10-08 02:38:04] [SUCCESS] Query successful: 18 results added
+[2025-10-08 02:38:06] [INFO] Executing query: site:linkedin.com Stanford Machine Learning
+[2025-10-08 02:38:09] [WARN] Query returned no results
+[2025-10-08 02:38:11] [INFO] Executing query: site:linkedin.com Stanford NLP
+[2025-10-08 02:38:14] [WARN] Query returned no results
+[2025-10-08 02:38:16] [INFO] Executing query: site:linkedin.com Stanford Deep Learning
+[2025-10-08 02:38:19] [WARN] Query returned no results
+[2025-10-08 02:38:21] [INFO] Executing query: site:linkedin.com Stanford Data Science
+[2025-10-08 02:38:24] [WARN] Query returned no results
+[2025-10-08 02:38:26] [INFO] Executing query: site:linkedin.com Stanford Robotics
+[2025-10-08 02:38:29] [WARN] Query returned no results
+[2025-10-08 02:38:29] [INFO] Saved 3 queries to cache
+[2025-10-08 02:38:30] [SUCCESS] Exported CSV: C:\SearxQueries\linkedin_results_20251008_023830.csv
+[2025-10-08 02:38:30] [SUCCESS] Exported JSON: C:\SearxQueries\linkedin_results_20251008_023830.json
+[2025-10-08 02:38:30] [SUCCESS] Exported TXT: C:\SearxQueries\linkedin_urls_20251008_023830.txt
+[2025-10-08 02:38:30] [SUCCESS] Exported HTML: C:\SearxQueries\linkedin_report_20251008_023830.html
+[2025-10-08 02:38:30] [SUCCESS] Statistics - Queries: 8, Successful: 8, Results: 55, Duration: 00:33
+[2025-10-08 02:38:30] [SUCCESS] Script completed successfully. Total results: 55

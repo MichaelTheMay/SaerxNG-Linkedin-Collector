@@ -1,0 +1,25 @@
+[2025-10-08 02:39:59] [INFO] Script started with parameters: SearxURL=http://localhost:8888, WorkDir=C:\SearxQueries, UseCache=False
+[2025-10-08 02:39:59] [INFO] Selected 8 keywords for search
+[2025-10-08 02:40:02] [SUCCESS] SearxNG connection test successful
+[2025-10-08 02:40:03] [INFO] Executing query: site:linkedin.com Stanford Computer Science
+[2025-10-08 02:40:03] [SUCCESS] Query successful: 16 results added
+[2025-10-08 02:40:05] [INFO] Executing query: site:linkedin.com Stanford CS
+[2025-10-08 02:40:06] [SUCCESS] Query successful: 21 results added
+[2025-10-08 02:40:08] [INFO] Executing query: site:linkedin.com Stanford Artificial Intelligence
+[2025-10-08 02:40:09] [SUCCESS] Query successful: 18 results added
+[2025-10-08 02:40:11] [INFO] Executing query: site:linkedin.com Stanford Machine Learning
+[2025-10-08 02:40:12] [SUCCESS] Query successful: 4 results added
+[2025-10-08 02:40:14] [INFO] Executing query: site:linkedin.com Stanford NLP
+[2025-10-08 02:40:15] [SUCCESS] Query successful: 15 results added
+[2025-10-08 02:40:17] [INFO] Executing query: site:linkedin.com Stanford Deep Learning
+[2025-10-08 02:40:18] [SUCCESS] Query successful: 0 results added
+[2025-10-08 02:40:20] [INFO] Executing query: site:linkedin.com Stanford Data Science
+[2025-10-08 02:40:20] [SUCCESS] Query successful: 5 results added
+[2025-10-08 02:40:23] [INFO] Executing query: site:linkedin.com Stanford Robotics
+[2025-10-08 02:40:23] [SUCCESS] Query successful: 3 results added
+[2025-10-08 02:40:24] [SUCCESS] Exported CSV: C:\SearxQueries\linkedin_results_20251008_024023.csv
+[2025-10-08 02:40:24] [SUCCESS] Exported JSON: C:\SearxQueries\linkedin_results_20251008_024023.json
+[2025-10-08 02:40:24] [SUCCESS] Exported TXT: C:\SearxQueries\linkedin_urls_20251008_024023.txt
+[2025-10-08 02:40:24] [SUCCESS] Exported HTML: C:\SearxQueries\linkedin_report_20251008_024023.html
+[2025-10-08 02:40:24] [SUCCESS] Statistics - Queries: 8, Successful: 8, Results: 82, Duration: 00:24
+[2025-10-08 02:40:24] [SUCCESS] Script completed successfully. Total results: 82

@@ -1,0 +1,14 @@
+[2025-10-08 02:35:58] [INFO] Script started with parameters: SearxURL=http://localhost:8888, WorkDir=C:\SearxQueries, UseCache=True
+[2025-10-08 02:35:58] [INFO] Selected 8 keywords for search
+[2025-10-08 02:35:58] [ERROR] SearxNG connection test failed: Response status code does not indicate success: 403 (Forbidden).
+[2025-10-08 02:35:59] [INFO] Executing query: site:linkedin.com Stanford Computer Science
+[2025-10-08 02:36:00] [WARN] Retry 1/3 after error: Response status code does not indicate success: 403 (Forbidden).
+[2025-10-08 02:36:05] [WARN] Retry 2/3 after error: Response status code does not indicate success: 403 (Forbidden).
+[2025-10-08 02:36:15] [ERROR] Query 'Stanford Computer Science': Response status code does not indicate success: 403 (Forbidden).
+[2025-10-08 02:36:17] [INFO] Executing query: site:linkedin.com Stanford CS
+[2025-10-08 02:36:17] [WARN] Retry 1/3 after error: Response status code does not indicate success: 403 (Forbidden).
+[2025-10-08 02:36:22] [WARN] Retry 2/3 after error: Response status code does not indicate success: 403 (Forbidden).
+[2025-10-08 02:36:32] [ERROR] Query 'Stanford CS': Response status code does not indicate success: 403 (Forbidden).
+[2025-10-08 02:36:34] [INFO] Executing query: site:linkedin.com Stanford Artificial Intelligence
+[2025-10-08 02:36:34] [WARN] Retry 1/3 after error: Response status code does not indicate success: 403 (Forbidden).
+[2025-10-08 02:36:39] [WARN] Retry 2/3 after error: Response status code does not indicate success: 403 (Forbidden).

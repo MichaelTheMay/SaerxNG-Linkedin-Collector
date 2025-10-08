@@ -1,0 +1,4 @@
+[2025-10-08 03:03:40] [INFO] Script started with parameters: SearxURL=https://searx.be, WorkDir=C:\SearxQueries, UseCache=False
+[2025-10-08 03:03:40] [INFO] Directory structure created: logs, results, reports, cache, exports
+[2025-10-08 03:03:40] [INFO] Selected 3 keywords for search
+[2025-10-08 03:03:41] [ERROR] SearxNG connection test failed: Response status code does not indicate success: 403 (FORBIDDEN).
