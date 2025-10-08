@@ -445,6 +445,8 @@ foreach ($kw in $Keywords) {
     $pageNum = 1
     $continueSearching = $true
     $totalPagesChecked = 0
+    $emptyPageCount = 0
+    $maxEmptyPages = 3  # Stop after 3 consecutive empty pages
     
     try {
         # Pagination loop - continue until no more results or max pages reached
@@ -466,6 +468,7 @@ foreach ($kw in $Keywords) {
                 if ($results -and $results.Count -gt 0) {
                     $pageAddedCount = 0
                     $pageDuplicateCount = 0
+                    $pageHasValidResults = $false
                     
                     $timestamp = [DateTime]::Now.ToString("yyyy-MM-dd HH:mm:ss")
                     foreach ($result in $results) {
@@ -489,6 +492,7 @@ foreach ($kw in $Keywords) {
                                 $AllResults.Add([PSCustomObject]$resultObject)
                                 $addedCount++
                                 $pageAddedCount++
+                                $pageHasValidResults = $true
                             } else {
                                 $duplicateCount++
                                 $pageDuplicateCount++
@@ -498,17 +502,26 @@ foreach ($kw in $Keywords) {
                             $AllResults.Add([PSCustomObject]$resultObject)
                             $addedCount++
                             $pageAddedCount++
+                            $pageHasValidResults = $true
                         }
                     }
                     
                     if ($pageNum -gt 1) {
-                        Write-Host " +$pageAddedCount" -ForegroundColor Green
+                        if ($pageAddedCount -gt 0) {
+                            Write-Host " +$pageAddedCount" -ForegroundColor Green
+                        } else {
+                            Write-Host " (all dupes)" -ForegroundColor Yellow
+                        }
                     }
                     
-                    # Stop if no new unique results found on this page
-                    if ($pageAddedCount -eq 0 -and $results.Count -gt 0) {
-                        Write-Log "Page $pageNum returned no new unique results, stopping pagination" "INFO"
-                        $continueSearching = $false
+                    # Reset empty page counter if we got valid results
+                    if ($pageHasValidResults) {
+                        $emptyPageCount = 0
+                    } else {
+                        $emptyPageCount++
+                        if ($emptyPageCount -ge $maxEmptyPages) {
+                            $continueSearching = $false
+                        }
                     }
                     
                     # Check if we've hit the max results limit
@@ -517,14 +530,23 @@ foreach ($kw in $Keywords) {
                         $continueSearching = $false
                     }
                     
-                    $pageNum++
+                    if ($continueSearching) {
+                        $pageNum++
+                    }
                 }
                 else {
-                    # No results on this page, stop pagination
+                    # No results on this page
+                    $emptyPageCount++
                     if ($pageNum -gt 1) {
-                        Write-Host " No more results" -ForegroundColor Gray
+                        Write-Host " (empty)" -ForegroundColor Gray
                     }
-                    $continueSearching = $false
+                    
+                    if ($emptyPageCount -ge $maxEmptyPages) {
+                        Write-Log "Stopped after $maxEmptyPages consecutive empty pages" "INFO"
+                        $continueSearching = $false
+                    } else {
+                        $pageNum++  # Try next page
+                    }
                 }
             }
             else {
@@ -532,9 +554,9 @@ foreach ($kw in $Keywords) {
                 $continueSearching = $false
             }
             
-            # Small delay between pages to avoid rate limiting
+            # Delay between pages to avoid rate limiting
             if ($continueSearching -and $pageNum -le $Config.MaxPagesPerQuery) {
-                Start-Sleep -Milliseconds 500
+                Start-Sleep -Milliseconds 1000
             }
         }
         
@@ -651,7 +673,12 @@ if ($Config.ExportFormats -contains "JSON") {
 # Export TXT (URLs only)
 if ($Config.ExportFormats -contains "TXT") {
     $txtPath = Join-Path $Directories.Results "linkedin_urls_$exportTimestamp.txt"
-    [System.IO.File]::WriteAllLines($txtPath, ($AllResults | ForEach-Object { $_.URL }))
+    $urls = @($AllResults | ForEach-Object { $_.URL } | Where-Object { $_ })
+    if ($urls.Count -gt 0) {
+        [System.IO.File]::WriteAllLines($txtPath, $urls)
+    } else {
+        [System.IO.File]::WriteAllText($txtPath, "# No results found`n", [System.Text.Encoding]::UTF8)
+    }
     Write-Host "      ✓ TXT: $txtPath" -ForegroundColor Green
     $ExportedFiles += $txtPath
     Write-Log "Exported TXT: $txtPath" "SUCCESS"

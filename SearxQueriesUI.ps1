@@ -18,7 +18,7 @@ Add-Type -AssemblyName System.Windows.Forms
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SearxNG LinkedIn Collector - UI" Height="750" Width="1100" 
+        Title="SearxNG LinkedIn Collector - UI" Height="750" Width="1200" 
         WindowStartupLocation="CenterScreen" Background="#F5F5F5">
     <Window.Resources>
         <Style TargetType="Button">
@@ -40,14 +40,16 @@ $xaml = @"
         <Style TargetType="Label">
             <Setter Property="Margin" Value="5,5,5,0"/>
         </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
     </Window.Resources>
     
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="200"/>
         </Grid.RowDefinitions>
         
         <!-- Header -->
@@ -59,7 +61,7 @@ $xaml = @"
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="🔍 SearxNG LinkedIn Collector" FontSize="24" FontWeight="Bold" Foreground="White"/>
-                    <TextBlock Name="SubtitleText" Text="Professional Edition v2.1 - Graphical Interface" FontSize="12" Foreground="#E0E0E0" Margin="0,5,0,0"/>
+                    <TextBlock Name="SubtitleText" Text="Professional Edition v2.2 - Integrated Results Viewer" FontSize="12" Foreground="#E0E0E0" Margin="0,5,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Name="KeywordCountText" Text="Keywords: 0" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right"/>
@@ -68,7 +70,11 @@ $xaml = @"
             </Grid>
         </Border>
         
-        <!-- Main Content -->
+        <!-- Main Tab Control -->
+        <TabControl Grid.Row="1" Name="MainTabs" Background="#F5F5F5" BorderThickness="0">
+            <!-- Search Tab -->
+            <TabItem Header="🔍 Search" Name="SearchTab">
+                <Grid Margin="0,10,0,0">
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*"/>

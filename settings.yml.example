@@ -64,5 +64,5 @@ engines:
     disabled: true  # May rate limit
     
   - name: google
-    disabled: true  # May timeout
+    disabled: false  # May timeout
 
