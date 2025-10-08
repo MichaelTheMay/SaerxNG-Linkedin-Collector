@@ -1,0 +1,25 @@
+[2025-10-08 02:48:04] [INFO] Script started with parameters: SearxURL=http://localhost:8888, WorkDir=C:\SearxQueries, UseCache=True
+[2025-10-08 02:48:04] [INFO] Directory structure created: logs, results, reports, cache, exports
+[2025-10-08 02:48:04] [INFO] Loaded 3 cached queries from C:\SearxQueries\cache\query_cache.json
+[2025-10-08 02:48:04] [INFO] Selected 8 keywords for search
+[2025-10-08 02:48:05] [SUCCESS] SearxNG connection test successful
+[2025-10-08 02:48:05] [INFO] Executing query: site:linkedin.com Stanford Machine Learning
+[2025-10-08 02:48:08] [INFO] Page 1 returned no new unique results, stopping pagination
+[2025-10-08 02:48:08] [WARN] Query returned no results
+[2025-10-08 02:48:10] [INFO] Executing query: site:linkedin.com Stanford NLP
+[2025-10-08 02:48:23] [INFO] Page 10 returned no new unique results, stopping pagination
+[2025-10-08 02:48:23] [SUCCESS] Query successful: 55 results added from 10 pages
+[2025-10-08 02:48:25] [INFO] Executing query: site:linkedin.com Stanford Deep Learning
+[2025-10-08 02:48:28] [INFO] Page 1 returned no new unique results, stopping pagination
+[2025-10-08 02:48:28] [WARN] Query returned no results
+[2025-10-08 02:48:30] [INFO] Executing query: site:linkedin.com Stanford Data Science
+[2025-10-08 02:48:58] [SUCCESS] Query successful: 134 results added from 19 pages
+[2025-10-08 02:49:00] [INFO] Executing query: site:linkedin.com Stanford Robotics
+[2025-10-08 02:49:29] [SUCCESS] Query successful: 99 results added from 19 pages
+[2025-10-08 02:49:29] [INFO] Saved 6 queries to cache
+[2025-10-08 02:49:29] [SUCCESS] Exported CSV: C:\SearxQueries\results\linkedin_results_20251008_024929.csv
+[2025-10-08 02:49:29] [SUCCESS] Exported JSON: C:\SearxQueries\results\linkedin_results_20251008_024929.json
+[2025-10-08 02:49:29] [SUCCESS] Exported TXT: C:\SearxQueries\results\linkedin_urls_20251008_024929.txt
+[2025-10-08 02:49:29] [SUCCESS] Exported HTML: C:\SearxQueries\reports\linkedin_report_20251008_024929.html
+[2025-10-08 02:49:29] [SUCCESS] Statistics - Queries: 8, Successful: 5, Results: 343, Duration: 01:24
+[2025-10-08 02:49:29] [SUCCESS] Script completed successfully. Total results: 343
