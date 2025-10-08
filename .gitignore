@@ -43,20 +43,20 @@ reports/
 cache/
 exports/
 archive/
-backup*/
+backup_*/
 
 # Generated result files (if in root)
-*.csv
-*.json
-*.txt
-*.html
+linkedin_*.csv
+linkedin_*.json
+linkedin_*.txt
+linkedin_*.html
+stanford_*.csv
+stanford_*.json
+search_log_*.txt
+query_cache.json
 
 # But keep these essential text files
-!README.md
-!stanford_keywords_comprehensive.txt
-!stanford_keywords_generated.txt
-!.gitignore
->>>>>>> 9937075 (Add .gitignore, CHANGELOG, CONTRIBUTING.md, and example settings.yml)
+!stanford_keywords_all.txt
 
 # Cache files
 query_cache.json
