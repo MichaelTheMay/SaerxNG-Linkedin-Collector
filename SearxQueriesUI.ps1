@@ -1,7 +1,7 @@
 # ===============================================================
-# SearxNG LinkedIn Collector - GUI Edition
+# SearxNG LinkedIn Collector - GUI Edition with Integrated Results
 # ===============================================================
-# A graphical interface for managing keywords and running searches
+# A graphical interface for managing keywords, running searches, and viewing results
 # 
 # Usage:
 #   .\SearxQueriesUI.ps1
@@ -18,7 +18,7 @@ Add-Type -AssemblyName System.Windows.Forms
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SearxNG LinkedIn Collector - UI" Height="750" Width="1200" 
+        Title="SearxNG LinkedIn Collector - UI" Height="800" Width="1300" 
         WindowStartupLocation="CenterScreen" Background="#F5F5F5">
     <Window.Resources>
         <Style TargetType="Button">
@@ -75,215 +75,276 @@ $xaml = @"
             <!-- Search Tab -->
             <TabItem Header="🔍 Search" Name="SearchTab">
                 <Grid Margin="0,10,0,0">
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            
-            <!-- Keywords List Panel -->
-            <Border Grid.Column="0" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5" Padding="10">
-                <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="200"/>
                     </Grid.RowDefinitions>
                     
-                    <Label Grid.Row="0" Content="📋 Keyword List" FontSize="16"/>
-                    
-                    <!-- Search/Filter Box -->
-                    <TextBox Grid.Row="1" Name="FilterBox" Text="" Margin="5" Padding="8">
-                        <TextBox.Style>
-                            <Style TargetType="TextBox">
-                                <Setter Property="Foreground" Value="Black"/>
-                                <Style.Triggers>
-                                    <Trigger Property="Text" Value="">
-                                        <Setter Property="Background">
-                                            <Setter.Value>
-                                                <VisualBrush Stretch="None" AlignmentX="Left">
-                                                    <VisualBrush.Visual>
-                                                        <TextBlock Text="🔍 Search keywords..." Foreground="#999999" Margin="5,0,0,0"/>
-                                                    </VisualBrush.Visual>
-                                                </VisualBrush>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
-                    
-                    <!-- Keywords ListBox -->
-                    <ListBox Grid.Row="2" Name="KeywordsList" SelectionMode="Extended" 
-                             ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="5"
-                             FontFamily="Segoe UI" FontSize="12">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="Padding" Value="5"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#E7F3FF"/>
-                                        <Setter Property="Foreground" Value="#0077B5"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                    </ListBox>
-                    
-                    <!-- Keyword Management Buttons -->
-                    <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="5">
-                        <Button Name="AddKeywordBtn" Content="➕ Add" Width="80"/>
-                        <Button Name="EditKeywordBtn" Content="✏️ Edit" Width="80"/>
-                        <Button Name="DeleteKeywordBtn" Content="🗑️ Delete" Width="80"/>
-                        <Button Name="ClearAllBtn" Content="Clear All" Width="80" Background="#DC3545"/>
-                        <Button Name="SelectAllBtn" Content="Select All" Width="80" Background="#6C757D"/>
-                        <Button Name="DeselectAllBtn" Content="Deselect" Width="80" Background="#6C757D"/>
-                    </WrapPanel>
-                </Grid>
-            </Border>
-            
-            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#DDDDDD"/>
-            
-            <!-- Configuration Panel -->
-            <Border Grid.Column="2" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5" Padding="10">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <Label Content="⚙️ Configuration" FontSize="16"/>
-                        
-                        <!-- File Operations -->
-                        <GroupBox Header="📁 File Operations" Margin="5" Padding="5">
-                            <StackPanel>
-                                <Button Name="LoadFromFileBtn" Content="📂 Load from File" HorizontalAlignment="Stretch" Background="#28A745"/>
-                                <Button Name="SaveToFileBtn" Content="💾 Save to File" HorizontalAlignment="Stretch" Background="#17A2B8"/>
-                                <Button Name="GeneratePermutationsBtn" Content="🔄 Generate Permutations" HorizontalAlignment="Stretch" Background="#FFC107" Foreground="Black"/>
-                            </StackPanel>
-                        </GroupBox>
-                        
-                        <!-- SearxNG Settings -->
-                        <GroupBox Header="🔧 SearxNG Settings" Margin="5" Padding="5">
-                            <StackPanel>
-                                <Label Content="SearxNG URL:" FontSize="11"/>
-                                <TextBox Name="SearxUrlBox" Text="http://localhost:8888"/>
-                                
-                                <Label Content="Work Directory:" FontSize="11"/>
-                                <TextBox Name="WorkDirBox" Text="C:\SearxQueries"/>
-                            </StackPanel>
-                        </GroupBox>
-                        
-                        <!-- Search Options -->
-                        <GroupBox Header="🎯 Search Options" Margin="5" Padding="5">
-                            <StackPanel>
-                                <CheckBox Name="UseCacheCheck" Content="Use Cache" IsChecked="True" Margin="5"/>
-                                <CheckBox Name="OpenResultsCheck" Content="Auto-open Results" IsChecked="True" Margin="5"/>
-                                <CheckBox Name="VerboseCheck" Content="Verbose Output" IsChecked="False" Margin="5"/>
-                                <CheckBox Name="ParallelCheck" Content="⚡ Parallel Execution" IsChecked="True" Margin="5"/>
-                                
-                                <Label Content="Export Format:" FontSize="11"/>
-                                <ComboBox Name="ExportFormatCombo" SelectedIndex="0" Margin="5">
-                                    <ComboBoxItem Content="ALL"/>
-                                    <ComboBoxItem Content="CSV"/>
-                                    <ComboBoxItem Content="JSON"/>
-                                    <ComboBoxItem Content="TXT"/>
-                                    <ComboBoxItem Content="HTML"/>
-                                </ComboBox>
-                                
-                                <Label Content="Parallel Threads:" FontSize="11"/>
-                                <TextBox Name="ThrottleLimitBox" Text="5"/>
-                                
-                                <Label Content="Delay (seconds):" FontSize="11"/>
-                                <TextBox Name="DelayBox" Text="2"/>
-                                
-                                <Label Content="Max Retries:" FontSize="11"/>
-                                <TextBox Name="MaxRetriesBox" Text="3"/>
-                            </StackPanel>
-                        </GroupBox>
-                        
-                        <!-- Quick Actions -->
-                        <GroupBox Header="⚡ Quick Actions" Margin="5" Padding="5">
-                            <StackPanel>
-                                <Button Name="OpenResultsFolderBtn" Content="📂 Results Folder" HorizontalAlignment="Stretch" Background="#6C757D"/>
-                                <Button Name="OpenReportsFolderBtn" Content="📊 Reports Folder" HorizontalAlignment="Stretch" Background="#6C757D"/>
-                                <Button Name="OpenLogsFolderBtn" Content="📝 Logs Folder" HorizontalAlignment="Stretch" Background="#6C757D"/>
-                            </StackPanel>
-                        </GroupBox>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-        </Grid>
-        
-        <!-- Action Buttons -->
-        <Border Grid.Row="2" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,10">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                
-                <Grid Grid.Row="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Name="StatusText" Text="Ready" FontSize="12" VerticalAlignment="Center" Margin="10,0"/>
-                    </StackPanel>
-                    
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Name="TestConnectionBtn" Content="🔌 Test Connection" Width="140" Background="#17A2B8"/>
-                        <Button Name="RunSearchBtn" Content="▶️ Run Search" Width="140" FontSize="14" Background="#28A745"/>
-                        <Button Name="StopSearchBtn" Content="⏹️ Stop" Width="80" Background="#DC3545" IsEnabled="False"/>
-                    </StackPanel>
-                </Grid>
-                
-                <!-- Progress Bar -->
-                <Grid Grid.Row="1" Margin="10,10,10,0" Name="ProgressPanel" Visibility="Collapsed">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    
+                    <!-- Main Content -->
                     <Grid Grid.Row="0">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="5"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="ProgressText" Text="" FontSize="11" Foreground="#666"/>
-                        <TextBlock Grid.Column="1" Name="ProgressPercent" Text="0%" FontSize="11" FontWeight="Bold" Foreground="#0077B5"/>
+                        
+                        <!-- Keywords List Panel -->
+                        <Border Grid.Column="0" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5" Padding="10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <Label Grid.Row="0" Content="📋 Keyword List" FontSize="16"/>
+                                
+                                <!-- Search/Filter Box -->
+                                <TextBox Grid.Row="1" Name="FilterBox" Text="" Margin="5" Padding="8">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="Foreground" Value="Black"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="Text" Value="">
+                                                    <Setter Property="Background">
+                                                        <Setter.Value>
+                                                            <VisualBrush Stretch="None" AlignmentX="Left">
+                                                                <VisualBrush.Visual>
+                                                                    <TextBlock Text="🔍 Search keywords..." Foreground="#999999" Margin="5,0,0,0"/>
+                                                                </VisualBrush.Visual>
+                                                            </VisualBrush>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                                
+                                <!-- Keywords ListBox -->
+                                <ListBox Grid.Row="2" Name="KeywordsList" SelectionMode="Extended" 
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="5"
+                                         FontFamily="Segoe UI" FontSize="12">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="5"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="#E7F3FF"/>
+                                                    <Setter Property="Foreground" Value="#0077B5"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                                
+                                <!-- Keyword Management Buttons -->
+                                <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="5">
+                                    <Button Name="AddKeywordBtn" Content="➕ Add" Width="80"/>
+                                    <Button Name="EditKeywordBtn" Content="✏️ Edit" Width="80"/>
+                                    <Button Name="DeleteKeywordBtn" Content="🗑️ Delete" Width="80"/>
+                                    <Button Name="ClearAllBtn" Content="Clear All" Width="80" Background="#DC3545"/>
+                                    <Button Name="SelectAllBtn" Content="Select All" Width="80" Background="#6C757D"/>
+                                    <Button Name="DeselectAllBtn" Content="Deselect" Width="80" Background="#6C757D"/>
+                                </WrapPanel>
+                            </Grid>
+                        </Border>
+                        
+                        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#DDDDDD"/>
+                        
+                        <!-- Configuration Panel -->
+                        <Border Grid.Column="2" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5" Padding="10">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <Label Content="⚙️ Configuration" FontSize="16"/>
+                                    
+                                    <!-- File Operations -->
+                                    <GroupBox Header="📁 File Operations" Margin="5" Padding="5">
+                                        <StackPanel>
+                                            <Button Name="LoadFromFileBtn" Content="📂 Load from File" HorizontalAlignment="Stretch" Background="#28A745"/>
+                                            <Button Name="SaveToFileBtn" Content="💾 Save to File" HorizontalAlignment="Stretch" Background="#17A2B8"/>
+                                            <Button Name="GeneratePermutationsBtn" Content="🔄 Generate Permutations" HorizontalAlignment="Stretch" Background="#FFC107" Foreground="Black"/>
+                                        </StackPanel>
+                                    </GroupBox>
+                                    
+                                    <!-- SearxNG Settings -->
+                                    <GroupBox Header="🔧 SearxNG Settings" Margin="5" Padding="5">
+                                        <StackPanel>
+                                            <Label Content="SearxNG URL:" FontSize="11"/>
+                                            <TextBox Name="SearxUrlBox" Text="http://localhost:8888"/>
+                                            
+                                            <Label Content="Work Directory:" FontSize="11"/>
+                                            <TextBox Name="WorkDirBox" Text="C:\SearxQueries"/>
+                                        </StackPanel>
+                                    </GroupBox>
+                                    
+                                    <!-- Search Options -->
+                                    <GroupBox Header="🎯 Search Options" Margin="5" Padding="5">
+                                        <StackPanel>
+                                            <CheckBox Name="UseCacheCheck" Content="Use Cache" IsChecked="True" Margin="5"/>
+                                            <CheckBox Name="OpenResultsCheck" Content="Auto-open Results" IsChecked="False" Margin="5"/>
+                                            <CheckBox Name="VerboseCheck" Content="Verbose Output" IsChecked="False" Margin="5"/>
+                                            <CheckBox Name="ParallelCheck" Content="⚡ Parallel Execution" IsChecked="True" Margin="5"/>
+                                            
+                                            <Label Content="Export Format:" FontSize="11"/>
+                                            <ComboBox Name="ExportFormatCombo" SelectedIndex="0" Margin="5">
+                                                <ComboBoxItem Content="ALL"/>
+                                                <ComboBoxItem Content="CSV"/>
+                                                <ComboBoxItem Content="JSON"/>
+                                                <ComboBoxItem Content="TXT"/>
+                                                <ComboBoxItem Content="HTML"/>
+                                            </ComboBox>
+                                            
+                                            <Label Content="Parallel Threads:" FontSize="11"/>
+                                            <TextBox Name="ThrottleLimitBox" Text="5"/>
+                                            
+                                            <Label Content="Delay (seconds):" FontSize="11"/>
+                                            <TextBox Name="DelayBox" Text="2"/>
+                                            
+                                            <Label Content="Max Retries:" FontSize="11"/>
+                                            <TextBox Name="MaxRetriesBox" Text="3"/>
+                                        </StackPanel>
+                                    </GroupBox>
+                                    
+                                    <!-- Quick Actions -->
+                                    <GroupBox Header="⚡ Quick Actions" Margin="5" Padding="5">
+                                        <StackPanel>
+                                            <Button Name="OpenResultsFolderBtn" Content="📂 Results Folder" HorizontalAlignment="Stretch" Background="#6C757D"/>
+                                            <Button Name="OpenReportsFolderBtn" Content="📊 Reports Folder" HorizontalAlignment="Stretch" Background="#6C757D"/>
+                                            <Button Name="OpenLogsFolderBtn" Content="📝 Logs Folder" HorizontalAlignment="Stretch" Background="#6C757D"/>
+                                        </StackPanel>
+                                    </GroupBox>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
                     </Grid>
                     
-                    <ProgressBar Grid.Row="1" Name="ProgressBar" Height="20" Minimum="0" Maximum="100" Value="0" Margin="0,5,0,0"/>
+                    <!-- Action Buttons -->
+                    <Border Grid.Row="1" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Name="StatusText" Text="Ready" FontSize="12" VerticalAlignment="Center" Margin="10,0"/>
+                                </StackPanel>
+                                
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button Name="TestConnectionBtn" Content="🔌 Test Connection" Width="140" Background="#17A2B8"/>
+                                    <Button Name="RunSearchBtn" Content="▶️ Run Search" Width="140" FontSize="14" Background="#28A745"/>
+                                    <Button Name="StopSearchBtn" Content="⏹️ Stop" Width="80" Background="#DC3545" IsEnabled="False"/>
+                                </StackPanel>
+                            </Grid>
+                            
+                            <!-- Progress Bar -->
+                            <Grid Grid.Row="1" Margin="10,10,10,0" Name="ProgressPanel" Visibility="Collapsed">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <Grid Grid.Row="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Name="ProgressText" Text="" FontSize="11" Foreground="#666"/>
+                                    <TextBlock Grid.Column="1" Name="ProgressPercent" Text="0%" FontSize="11" FontWeight="Bold" Foreground="#0077B5"/>
+                                </Grid>
+                                
+                                <ProgressBar Grid.Row="1" Name="ProgressBar" Height="20" Minimum="0" Maximum="100" Value="0" Margin="0,5,0,0"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Output Console -->
+                    <Border Grid.Row="2" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,10,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                <Label Content="📺 Output Console" FontSize="14"/>
+                                <Button Name="ClearConsoleBtn" Content="Clear" Width="60" Height="25" Background="#6C757D" Margin="10,0,0,0"/>
+                            </StackPanel>
+                            
+                            <TextBox Grid.Row="1" Name="ConsoleOutput" 
+                                     IsReadOnly="True" 
+                                     VerticalScrollBarVisibility="Auto" 
+                                     TextWrapping="Wrap" 
+                                     FontFamily="Consolas" 
+                                     FontSize="11"
+                                     Background="#F8F9FA"
+                                     Foreground="#212529"
+                                     Margin="5"/>
+                        </Grid>
+                    </Border>
                 </Grid>
-            </Grid>
-        </Border>
-        
-        <!-- Output Console -->
-        <Border Grid.Row="3" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,10,0,0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                
-                <StackPanel Grid.Row="0" Orientation="Horizontal">
-                    <Label Content="📺 Output Console" FontSize="14"/>
-                    <Button Name="ClearConsoleBtn" Content="Clear" Width="60" Height="25" Background="#6C757D" Margin="10,0,0,0"/>
-                </StackPanel>
-                
-                <TextBox Grid.Row="1" Name="ConsoleOutput" 
-                         IsReadOnly="True" 
-                         VerticalScrollBarVisibility="Auto" 
-                         TextWrapping="Wrap" 
-                         FontFamily="Consolas" 
-                         FontSize="11"
-                         Background="#F8F9FA"
-                         Foreground="#212529"
-                         Margin="5"/>
-            </Grid>
-        </Border>
+            </TabItem>
+            
+            <!-- Results Tab -->
+            <TabItem Header="📊 Results" Name="ResultsTab">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Results Toolbar -->
+                    <Border Grid.Row="0" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                <Label Content="📄 Recent Reports:" FontSize="14" VerticalAlignment="Center"/>
+                                <ComboBox Name="RecentReportsCombo" Width="300" Margin="5" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <Button Name="RefreshReportsBtn" Content="🔄 Refresh" Width="100" Background="#17A2B8"/>
+                                <Button Name="OpenInBrowserBtn" Content="🌐 Open in Browser" Width="140" Background="#28A745"/>
+                                <Button Name="ExportResultsBtn" Content="💾 Export" Width="100" Background="#FFC107" Foreground="Black"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Results Viewer -->
+                    <Border Grid.Row="1" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="5">
+                        <ScrollViewer Name="ResultsScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                            <RichTextBox Name="ResultsViewer" 
+                                         IsReadOnly="True" 
+                                         BorderThickness="0"
+                                         Background="White"
+                                         Padding="20"
+                                         FontFamily="Segoe UI"
+                                         FontSize="12">
+                                <FlowDocument>
+                                    <Paragraph>
+                                        <Run Text="No results loaded yet. Run a search to see results here." Foreground="#999999" FontSize="16"/>
+                                    </Paragraph>
+                                </FlowDocument>
+                            </RichTextBox>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>
 "@
@@ -293,6 +354,12 @@ $reader = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml))
 $window = [Windows.Markup.XamlReader]::Load($reader)
 
 # ============== GET UI ELEMENTS ==============
+# Main controls
+$mainTabs = $window.FindName("MainTabs")
+$searchTab = $window.FindName("SearchTab")
+$resultsTab = $window.FindName("ResultsTab")
+
+# Search tab controls
 $keywordsList = $window.FindName("KeywordsList")
 $filterBox = $window.FindName("FilterBox")
 $addKeywordBtn = $window.FindName("AddKeywordBtn")
@@ -335,6 +402,14 @@ $progressBar = $window.FindName("ProgressBar")
 $progressText = $window.FindName("ProgressText")
 $progressPercent = $window.FindName("ProgressPercent")
 
+# Results tab controls
+$recentReportsCombo = $window.FindName("RecentReportsCombo")
+$refreshReportsBtn = $window.FindName("RefreshReportsBtn")
+$openInBrowserBtn = $window.FindName("OpenInBrowserBtn")
+$exportResultsBtn = $window.FindName("ExportResultsBtn")
+$resultsViewer = $window.FindName("ResultsViewer")
+$resultsScrollViewer = $window.FindName("ResultsScrollViewer")
+
 # ============== GLOBAL STATE ==============
 $script:keywords = New-Object System.Collections.ObjectModel.ObservableCollection[string]
 $script:allKeywords = @()
@@ -343,6 +418,8 @@ $script:searchJob = $null
 $script:timer = $null
 $script:progressFile = $null
 $script:lastProgressUpdate = [DateTime]::MinValue
+$script:currentReportPath = $null
+$script:recentReports = @()
 
 # ============== HELPER FUNCTIONS ==============
 
@@ -483,6 +560,135 @@ function Load-DefaultKeywords {
     Refresh-KeywordsList
     Write-Console "Loaded $($defaultKeywords.Count) default keywords"
     Update-Status "Loaded default keywords"
+}
+
+function Load-RecentReports {
+    $reportsPath = Join-Path $workDirBox.Text "reports"
+    if (Test-Path $reportsPath) {
+        $script:recentReports = Get-ChildItem -Path $reportsPath -Filter "*.html" | 
+            Sort-Object LastWriteTime -Descending | 
+            Select-Object -First 20
+        
+        $window.Dispatcher.Invoke([action]{
+            $recentReportsCombo.Items.Clear()
+            foreach ($report in $script:recentReports) {
+                $displayName = "$($report.BaseName) - $($report.LastWriteTime.ToString('yyyy-MM-dd HH:mm'))"
+                $recentReportsCombo.Items.Add($displayName)
+            }
+            if ($script:recentReports.Count -gt 0) {
+                $recentReportsCombo.SelectedIndex = 0
+            }
+        })
+    }
+}
+
+function Load-HtmlReport {
+    param([string]$HtmlPath)
+    
+    if (-not (Test-Path $HtmlPath)) {
+        [System.Windows.MessageBox]::Show("Report file not found: $HtmlPath", "Error", "OK", "Error")
+        return
+    }
+    
+    try {
+        $htmlContent = Get-Content $HtmlPath -Raw -Encoding UTF8
+        $script:currentReportPath = $HtmlPath
+        
+        # Parse HTML and display in RichTextBox
+        $window.Dispatcher.Invoke([action]{
+            $resultsViewer.Document.Blocks.Clear()
+            
+            # Extract key information from HTML
+            if ($htmlContent -match '<h1[^>]*>(.*?)</h1>') {
+                $title = $matches[1] -replace '<[^>]+>', ''
+                $titlePara = New-Object System.Windows.Documents.Paragraph
+                $titleRun = New-Object System.Windows.Documents.Run($title)
+                $titleRun.FontSize = 24
+                $titleRun.FontWeight = "Bold"
+                $titleRun.Foreground = "#0077B5"
+                $titlePara.Inlines.Add($titleRun)
+                $resultsViewer.Document.Blocks.Add($titlePara)
+            }
+            
+            # Extract stats
+            $statsPattern = '<div class="stat-box">\s*<h3>(\d+)</h3>\s*<p>(.*?)</p>'
+            $stats = [regex]::Matches($htmlContent, $statsPattern)
+            if ($stats.Count -gt 0) {
+                $statsPara = New-Object System.Windows.Documents.Paragraph
+                $statsPara.Margin = "0,10,0,10"
+                foreach ($stat in $stats) {
+                    $value = $stat.Groups[1].Value
+                    $label = $stat.Groups[2].Value -replace '<[^>]+>', ''
+                    $statRun = New-Object System.Windows.Documents.Run("$label`: $value   ")
+                    $statRun.FontWeight = "Bold"
+                    $statRun.FontSize = 14
+                    $statsPara.Inlines.Add($statRun)
+                }
+                $resultsViewer.Document.Blocks.Add($statsPara)
+            }
+            
+            # Extract results table
+            if ($htmlContent -match '(?s)<h2[^>]*>🔗 All Results</h2>.*?<table>(.*?)</table>') {
+                $tableContent = $matches[1]
+                $rowPattern = '<tr><td>(.*?)</td><td><a href=''(.*?)''[^>]*>(.*?)</a></td><td><span[^>]*>(.*?)</span></td><td><span[^>]*>(.*?)</span></td></tr>'
+                $rows = [regex]::Matches($tableContent, $rowPattern)
+                
+                if ($rows.Count -gt 0) {
+                    $headerPara = New-Object System.Windows.Documents.Paragraph
+                    $headerRun = New-Object System.Windows.Documents.Run("`nSearch Results ($($rows.Count) profiles)")
+                    $headerRun.FontSize = 18
+                    $headerRun.FontWeight = "Bold"
+                    $headerPara.Inlines.Add($headerRun)
+                    $resultsViewer.Document.Blocks.Add($headerPara)
+                    
+                    foreach ($row in $rows) {
+                        $title = $row.Groups[1].Value -replace '<[^>]+>', '' -replace '&nbsp;', ' '
+                        $url = $row.Groups[2].Value
+                        $keyword = $row.Groups[4].Value -replace '<[^>]+>', ''
+                        $engine = $row.Groups[5].Value -replace '<[^>]+>', ''
+                        
+                        $resultPara = New-Object System.Windows.Documents.Paragraph
+                        $resultPara.Margin = "0,5,0,5"
+                        
+                        $titleRun = New-Object System.Windows.Documents.Run($title)
+                        $titleRun.FontWeight = "Bold"
+                        $titleRun.FontSize = 12
+                        $resultPara.Inlines.Add($titleRun)
+                        
+                        $resultPara.Inlines.Add((New-Object System.Windows.Documents.LineBreak))
+                        
+                        $urlRun = New-Object System.Windows.Documents.Run($url)
+                        $urlRun.Foreground = "#0077B5"
+                        $urlRun.FontSize = 10
+                        $urlRun.Cursor = "Hand"
+                        $hyperlink = New-Object System.Windows.Documents.Hyperlink($urlRun)
+                        $hyperlink.NavigateUri = $url
+                        $hyperlink.Add_RequestNavigate({
+                            param($sender, $e)
+                            Start-Process $e.Uri.AbsoluteUri
+                        })
+                        $resultPara.Inlines.Add($hyperlink)
+                        
+                        $resultPara.Inlines.Add((New-Object System.Windows.Documents.LineBreak))
+                        
+                        $metaRun = New-Object System.Windows.Documents.Run("Keyword: $keyword | Engine: $engine")
+                        $metaRun.Foreground = "#666666"
+                        $metaRun.FontSize = 10
+                        $metaRun.FontStyle = "Italic"
+                        $resultPara.Inlines.Add($metaRun)
+                        
+                        $resultsViewer.Document.Blocks.Add($resultPara)
+                    }
+                }
+            }
+        })
+        
+        Write-Console "Loaded report: $([System.IO.Path]::GetFileName($HtmlPath))"
+        
+    } catch {
+        [System.Windows.MessageBox]::Show("Error loading report: $($_.Exception.Message)", "Error", "OK", "Error")
+        Write-Console "ERROR: Failed to load report - $($_.Exception.Message)"
+    }
 }
 
 # ============== EVENT HANDLERS ==============
@@ -788,7 +994,16 @@ $runSearchBtn.Add_Click({
                 Write-Console "========================================="
                 Update-Status "Search completed"
                 
-                [System.Windows.MessageBox]::Show("Search completed successfully!", "Search Complete", "OK", "Information")
+                # Automatically load the latest report in Results tab
+                Load-RecentReports
+                if ($script:recentReports.Count -gt 0) {
+                    $latestReport = $script:recentReports[0].FullName
+                    Load-HtmlReport -HtmlPath $latestReport
+                    $mainTabs.SelectedItem = $resultsTab
+                    Write-Console "Results loaded in Results tab"
+                }
+                
+                [System.Windows.MessageBox]::Show("Search completed successfully!`nResults have been loaded in the Results tab.", "Search Complete", "OK", "Information")
             }
             elseif ($script:searchJob.State -eq "Failed") {
                 $script:timer.Stop()
@@ -847,6 +1062,44 @@ $clearConsoleBtn.Add_Click({
     $consoleOutput.Clear()
 })
 
+# Results tab event handlers
+$refreshReportsBtn.Add_Click({
+    Load-RecentReports
+    Write-Console "Refreshed reports list"
+})
+
+$recentReportsCombo.Add_SelectionChanged({
+    if ($recentReportsCombo.SelectedIndex -ge 0 -and $recentReportsCombo.SelectedIndex -lt $script:recentReports.Count) {
+        $selectedReport = $script:recentReports[$recentReportsCombo.SelectedIndex].FullName
+        Load-HtmlReport -HtmlPath $selectedReport
+    }
+})
+
+$openInBrowserBtn.Add_Click({
+    if ($script:currentReportPath -and (Test-Path $script:currentReportPath)) {
+        Start-Process $script:currentReportPath
+        Write-Console "Opened report in browser"
+    } else {
+        [System.Windows.MessageBox]::Show("No report loaded.", "Open in Browser", "OK", "Information")
+    }
+})
+
+$exportResultsBtn.Add_Click({
+    if ($script:currentReportPath -and (Test-Path $script:currentReportPath)) {
+        $saveFileDialog = New-Object System.Windows.Forms.SaveFileDialog
+        $saveFileDialog.Filter = "HTML Files (*.html)|*.html|All Files (*.*)|*.*"
+        $saveFileDialog.DefaultExt = "html"
+        $saveFileDialog.FileName = [System.IO.Path]::GetFileName($script:currentReportPath)
+        
+        if ($saveFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+            Copy-Item -Path $script:currentReportPath -Destination $saveFileDialog.FileName
+            [System.Windows.MessageBox]::Show("Report exported successfully!", "Export Complete", "OK", "Information")
+        }
+    } else {
+        [System.Windows.MessageBox]::Show("No report loaded to export.", "Export Results", "OK", "Information")
+    }
+})
+
 # ============== INITIALIZATION ==============
 
 # Bind keywords list
@@ -855,9 +1108,13 @@ $keywordsList.ItemsSource = $script:keywords
 # Load default keywords
 Load-DefaultKeywords
 
+# Load recent reports
+Load-RecentReports
+
 # Welcome message
 Write-Console "========================================="
 Write-Console "SearxNG LinkedIn Collector - UI Edition"
+Write-Console "Version 2.2 with Integrated Results"
 Write-Console "========================================="
 Write-Console "Ready! Load keywords or start searching."
 Write-Console ""
@@ -865,4 +1122,3 @@ Update-Status "Ready"
 
 # ============== SHOW WINDOW ==============
 $window.ShowDialog() | Out-Null
-
