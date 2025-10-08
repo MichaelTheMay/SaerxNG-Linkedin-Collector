@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./config/settings.yml:/etc/searxng/settings.yml:ro
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8888/
+      - SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml
+    restart: unless-stopped
+    networks:
+      - searx-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/search?q=test&format=json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Run the API server in Docker as well
+  # api:
+  #   build:
+  #     context: ./packages/api
+  #     dockerfile: Dockerfile
+  #   container_name: searxng-api
+  #   ports:
+  #     - "3001:3001"
+  #   environment:
+  #     - SEARX_URL=http://searxng:8080
+  #     - PORT=3001
+  #   depends_on:
+  #     - searxng
+  #   networks:
+  #     - searx-network
+  #   restart: unless-stopped
+
+networks:
+  searx-network:
+    driver: bridge

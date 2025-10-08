@@ -1,0 +1,75 @@
+# SearxNG Configuration for LinkedIn Searches
+# Optimized for use with SearxNG LinkedIn Collector
+
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "SearxNG LinkedIn Collector"
+
+server:
+  secret_key: "CHANGE_THIS_TO_A_RANDOM_SECRET_KEY"
+  limiter: false
+  image_proxy: true
+
+ui:
+  default_theme: simple
+
+outgoing:
+  request_timeout: 10.0
+  max_request_timeout: 15.0
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "en"
+  formats:
+    - html
+    - json  # REQUIRED for API integration
+    - csv
+    - rss
+
+# Engine configuration
+engines:
+  # Primary engines (most reliable)
+  - name: bing
+    disabled: false
+    timeout: 10.0
+
+  - name: yahoo
+    disabled: false
+    timeout: 10.0
+
+  # Secondary engines (may have issues)
+  - name: qwant
+    disabled: false
+    timeout: 10.0
+
+  - name: mojeek
+    disabled: false
+    timeout: 10.0
+
+  # Disable problematic engines
+  - name: google
+    disabled: true  # Often triggers CAPTCHA
+
+  - name: duckduckgo
+    disabled: true  # Rate limiting issues
+
+  - name: startpage
+    disabled: true  # JSON parsing issues
+
+  - name: brave
+    disabled: true  # Rate limiting
+
+# Enable all general web search categories
+enabled_plugins:
+  - 'Hash plugin'
+  - 'Search on category select'
+  - 'Self Information'
+  - 'Tracker URL remover'
+
+# Hostname replacements for better compatibility
+hostname_replace:
+  '(.*\.)?youtube\.com$': 'invidious.io'
+  '(.*\.)?reddit\.com$': 'libredd.it'

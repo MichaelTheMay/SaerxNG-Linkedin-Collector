@@ -14,6 +14,7 @@
     "build": "npm run build:ui",
     "build:ui": "cd packages/ui && npm run build",
     "preview": "cd packages/ui && npm run preview",
+    "prestart": "node scripts/kill-ports.js",
     "start": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
     "clean": "rimraf packages/*/node_modules node_modules",
     "test": "echo \"Error: no test specified\" && exit 1"

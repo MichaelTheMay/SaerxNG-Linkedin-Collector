@@ -138,9 +138,9 @@ $Config = @{
     
     # Advanced settings
     TimeoutSeconds = 30
-    MaxResultsPerQuery = 9999  # Maximum results to fetch per query (set high to get all)
+    MaxResultsPerQuery = 999999  # Maximum results to fetch per query (effectively unlimited)
     EnablePagination = $true   # Enable pagination to fetch all results
-    MaxPagesPerQuery = 100     # Maximum pages to fetch per query
+    MaxPagesPerQuery = 999999  # Maximum pages to fetch per query (effectively unlimited)
     LogToFile = $true
 }
 
@@ -448,7 +448,7 @@ foreach ($kw in $Keywords) {
     $continueSearching = $true
     $totalPagesChecked = 0
     $emptyPageCount = 0
-    $maxEmptyPages = 3  # Stop after 3 consecutive empty pages
+    $maxEmptyPages = 5  # Stop after 5 consecutive empty pages (increased to ensure we get all results)
     
     try {
         # Pagination loop - continue until no more results or max pages reached
@@ -457,7 +457,9 @@ foreach ($kw in $Keywords) {
             $url = "$($Config.SearxURL)/search?q=$encoded`&format=json`&pageno=$pageNum"
             
             if ($pageNum -gt 1) {
-                Write-Host "      → Page $pageNum..." -NoNewline -ForegroundColor Gray
+                Write-Host "      → Page $pageNum (total: $addedCount results)..." -NoNewline -ForegroundColor Gray
+            } else {
+                Write-Host "      → Page 1..." -NoNewline -ForegroundColor Cyan
             }
             
             $response = Invoke-RetryableRequest -Url $url -Headers $headers -MaxRetries $Config.MaxRetries
@@ -571,9 +573,12 @@ foreach ($kw in $Keywords) {
         }
         
         $Stats.TotalResults += $addedCount
-        
+
+        Write-Host ""
+        Write-Host "      [✓] Pagination complete: $totalPagesChecked pages scanned, $addedCount unique results added" -ForegroundColor Cyan
+
         if ($addedCount -gt 0) {
-            Write-Host "      [+] Added: $addedCount" -NoNewline -ForegroundColor Green
+            Write-Host "      [+] Total Added: $addedCount" -NoNewline -ForegroundColor Green
             Write-Host " from $totalPagesChecked page(s)" -NoNewline -ForegroundColor Cyan
             if ($duplicateCount -gt 0) {
                 Write-Host " | Duplicates: $duplicateCount" -NoNewline -ForegroundColor Yellow

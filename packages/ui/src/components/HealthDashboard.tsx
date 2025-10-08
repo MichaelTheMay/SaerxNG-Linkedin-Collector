@@ -50,7 +50,8 @@ import {
   ElectricBolt as CircuitIcon
 } from '@mui/icons-material';
 
-import { api, HealthStatus, ConnectionTestResult } from '../api';
+import { api } from '../api';
+import type { HealthStatus, ConnectionTestResult } from '../api';
 
 interface HealthDashboardProps {
   onHealthChange?: (isHealthy: boolean) => void;

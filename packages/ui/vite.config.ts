@@ -1,6 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
+import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'path'
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -22,6 +27,15 @@ export default defineConfig({
 
     // Open browser on startup
     open: true,
+
+    // Proxy API requests to Node.js backend (port 3001)
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 
   // Build configuration
@@ -35,8 +49,8 @@ export default defineConfig({
   // Resolve configuration for proper module resolution
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@shared': path.resolve(__dirname, '../../shared'),
+      '@': resolve(__dirname, './src'),
+      '@shared': resolve(__dirname, '../../shared'),
     },
   },
 

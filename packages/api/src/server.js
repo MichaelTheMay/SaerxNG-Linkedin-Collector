@@ -1,3 +1,6 @@
+// Load environment variables
+require('dotenv').config();
+
 const express = require('express');
 const { spawn } = require('child_process');
 const path = require('path');
@@ -13,6 +16,13 @@ const processMonitor = require('./services/ProcessMonitor');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// SearxNG configuration with fallbacks
+const SEARX_URLS = [
+  process.env.SEARX_URL || 'http://localhost:8888',
+  process.env.SEARX_ALT_URL_1 || 'http://127.0.0.1:8888',
+  process.env.SEARX_ALT_URL_2 || 'http://172.17.0.2:8080'
+].filter(Boolean);
 
 // Enhanced middleware with correlation IDs and monitoring
 app.use(cors());
@@ -106,122 +116,118 @@ app.post('/api/test-connection', async (req, res) => {
   const { searxUrl } = req.body;
   const correlationId = req.correlationId;
 
-  if (!searxUrl) {
-    logger.warn('Connection test called without SearxNG URL', correlationId);
-    return res.status(400).json({
-      success: false,
-      error: 'SearxNG URL is required',
-      correlationId
-    });
-  }
+  // If no URL provided in request, try all configured URLs
+  const urlsToTest = searxUrl ? [searxUrl] : SEARX_URLS;
 
-  logger.info(`Testing connection to SearxNG: ${searxUrl}`, correlationId);
+  logger.info(`Testing connection to SearxNG with ${urlsToTest.length} URL(s)`, correlationId);
 
-  try {
-    const testUrl = `${searxUrl}/search?q=health-check&format=json`;
+  let lastError = null;
+  let successfulUrl = null;
 
-    // Use enhanced HTTP client with circuit breaker and retry logic
-    const startTime = Date.now();
-    const response = await httpClient.get(testUrl, {
-      timeout: 8000, // Slightly longer timeout for connection tests
-      headers: {
-        'Accept': 'application/json, text/html, */*'
-      }
-    }, correlationId);
+  // Try each URL until one succeeds
+  for (const url of urlsToTest) {
+    logger.info(`Attempting connection to: ${url}`, correlationId);
 
-    const responseTime = Date.now() - startTime;
+    try {
+      const testUrl = `${url}/search?q=health-check&format=json`;
 
-    // Analyze response for detailed health information
-    const healthInfo = {
-      statusCode: response.statusCode,
-      responseTime,
-      hasJsonResponse: typeof response.data === 'object',
-      contentLength: response.rawData?.length || 0,
-      contentType: response.headers['content-type'] || 'unknown'
-    };
-
-    // Check if response indicates healthy SearxNG
-    if (response.statusCode >= 200 && response.statusCode < 400) {
-      let resultsCount = 0;
-      let engines = [];
-
-      // Try to extract additional health info from JSON response
-      if (typeof response.data === 'object' && response.data.results) {
-        resultsCount = response.data.results.length;
-        engines = response.data.unresponsive_engines || [];
-      }
-
-      logger.success(`SearxNG connection successful`, correlationId, {
-        url: searxUrl,
-        responseTime,
-        statusCode: response.statusCode,
-        resultsCount,
-        unresponsiveEngines: engines.length,
-        healthInfo
-      });
-
-      res.json({
-        success: true,
-        message: 'Connection successful',
-        correlationId,
-        details: {
-          ...healthInfo,
-          resultsFound: resultsCount,
-          unresponsiveEngines: engines.length,
-          healthy: engines.length < 5 // Consider healthy if less than 5 engines are down
+      // Use enhanced HTTP client with circuit breaker and retry logic
+      const startTime = Date.now();
+      const response = await httpClient.get(testUrl, {
+        timeout: parseInt(process.env.CONNECTION_TIMEOUT) || 8000,
+        headers: {
+          'Accept': 'application/json, text/html, */*'
         }
-      });
-    } else {
-      logger.warn(`SearxNG returned non-success status`, correlationId, {
-        url: searxUrl,
+      }, correlationId);
+
+      const responseTime = Date.now() - startTime;
+
+      // If we get here, the connection succeeded
+      successfulUrl = url;
+
+      // Analyze response for detailed health information
+      const healthInfo = {
         statusCode: response.statusCode,
-        healthInfo
-      });
+        responseTime,
+        hasJsonResponse: typeof response.data === 'object',
+        contentLength: response.rawData?.length || 0,
+        contentType: response.headers['content-type'] || 'unknown',
+        connectedUrl: url
+      };
 
-      res.status(502).json({
-        success: false,
-        error: `SearxNG returned status code ${response.statusCode}`,
-        correlationId,
-        details: healthInfo
-      });
-    }
+      // Check if response indicates healthy SearxNG
+      if (response.statusCode >= 200 && response.statusCode < 400) {
+        let resultsCount = 0;
+        let engines = [];
 
-  } catch (error) {
-    logger.error('SearxNG connection test failed', correlationId, {
-      url: searxUrl,
-      error: error.message,
-      circuitBreakerOpen: error.circuitBreakerOpen || false
-    });
+        // Try to extract additional health info from JSON response
+        if (typeof response.data === 'object' && response.data.results) {
+          resultsCount = response.data.results.length;
+          engines = response.data.unresponsive_engines || [];
+        }
 
-    let statusCode = 503; // Service Unavailable
-    let errorMessage = error.message;
+        logger.success(`SearxNG connection successful`, correlationId, {
+          url: url,
+          responseTime,
+          statusCode: response.statusCode,
+          resultsCount,
+          unresponsiveEngines: engines.length,
+          healthInfo
+        });
 
-    // Provide specific error messages based on error type
-    if (error.circuitBreakerOpen) {
-      statusCode = 503;
-      errorMessage = 'SearxNG is temporarily unavailable (circuit breaker is open). Please try again later.';
-    } else if (error.message.includes('timeout')) {
-      statusCode = 504; // Gateway Timeout
-      errorMessage = 'Connection to SearxNG timed out. Please check if SearxNG is running.';
-    } else if (error.message.includes('ECONNREFUSED')) {
-      statusCode = 502; // Bad Gateway
-      errorMessage = 'Cannot connect to SearxNG. Please verify the URL and ensure SearxNG is running.';
-    } else if (error.message.includes('ENOTFOUND')) {
-      statusCode = 502;
-      errorMessage = 'SearxNG hostname could not be resolved. Please check the URL.';
-    }
-
-    res.status(statusCode).json({
-      success: false,
-      error: errorMessage,
-      correlationId,
-      details: {
-        originalError: error.message,
-        circuitBreakerOpen: error.circuitBreakerOpen || false,
-        retryAfter: error.circuitBreakerOpen ? 30 : null
+        return res.json({
+          success: true,
+          message: `Connection successful to ${url}`,
+          correlationId,
+          details: {
+            ...healthInfo,
+            resultsFound: resultsCount,
+            unresponsiveEngines: engines.length,
+            healthy: engines.length < 5 // Consider healthy if less than 5 engines are down
+          }
+        });
       }
-    });
+
+      lastError = `SearxNG returned status code ${response.statusCode}`;
+
+    } catch (error) {
+      lastError = error.message;
+      logger.warn(`Connection failed to ${url}: ${error.message}`, correlationId);
+      // Continue to next URL
+    }
   }
+
+  // If we get here, all URLs failed
+  logger.error('All SearxNG connection attempts failed', correlationId, {
+    testedUrls: urlsToTest,
+    lastError: lastError
+  });
+
+  let statusCode = 503; // Service Unavailable
+  let errorMessage = lastError || 'Failed to connect to SearxNG';
+
+  // Provide specific error messages based on error type
+  if (lastError && lastError.includes('timeout')) {
+    statusCode = 504; // Gateway Timeout
+    errorMessage = 'Connection to SearxNG timed out. Please check if SearxNG is running.';
+  } else if (lastError && lastError.includes('ECONNREFUSED')) {
+    statusCode = 502; // Bad Gateway
+    errorMessage = 'Cannot connect to SearxNG. Please verify the URL and ensure SearxNG Docker container is running.';
+  } else if (lastError && lastError.includes('ENOTFOUND')) {
+    statusCode = 502;
+    errorMessage = 'SearxNG hostname could not be resolved. Please check the URL.';
+  }
+
+  res.status(statusCode).json({
+    success: false,
+    error: errorMessage,
+    correlationId,
+    details: {
+      testedUrls: urlsToTest,
+      lastError: lastError,
+      suggestion: 'Ensure SearxNG Docker container is running: docker ps | grep searxng'
+    }
+  });
 });
 
 // Health and monitoring endpoints
@@ -724,12 +730,30 @@ app.get('/api/results', (req, res) => {
     }
     
     const data = JSON.parse(content);
-    
+
+    // Normalize data structure (PowerShell outputs capitalized keys)
+    const rawResults = data.Results || data.results || [];
+    const metadata = data.Metadata || data.metadata || null;
+    const statistics = data.Statistics || data.statistics || null;
+
+    // Normalize each result object to have lowercase keys
+    const results = rawResults.map(result => ({
+      keyword: result.Keyword || result.keyword || '',
+      title: result.Title || result.title || '',
+      url: result.URL || result.url || '',
+      content: result.Content || result.content || '',
+      engine: result.Engine || result.engine || 'unknown',
+      score: result.Score || result.score || 0,
+      timestamp: result.Timestamp || result.timestamp || new Date().toISOString()
+    }));
+
+    console.log(`Loaded ${results.length} results from ${latestFile.name}`);
+
     // Return comprehensive data
     res.json({
-      results: data.results || [],
-      metadata: data.metadata || null,
-      statistics: data.statistics || null,
+      results: results,
+      metadata: metadata,
+      statistics: statistics,
       fileInfo: {
         name: latestFile.name,
         path: latestFile.path,
@@ -749,11 +773,12 @@ app.get('/api/results', (req, res) => {
 });
 
 // Import data from uploaded file
-app.post('/api/import', (req, res) => {
+app.post('/api/import', async (req, res) => {
   const { data, filename, format } = req.body;
-  
+  const searchResultsDir = path.join(rootDir, 'data', 'results');
+
   console.log('Import request received:', { filename, format, dataLength: data?.length });
-  
+
   if (!data || !filename) {
     return res.status(400).json({ error: 'Data and filename are required' });
   }
@@ -993,7 +1018,7 @@ app.get('/api/keywords', (req, res) => {
 });
 
 // Save keywords to file
-app.post('/api/keywords', (req, res) => {
+app.post('/api/keywords', async (req, res) => {
   const { keywords } = req.body;
   const keywordsFile = path.join(dataDir, 'keywords.txt');
 
