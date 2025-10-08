@@ -1,104 +1,39 @@
-# ========================================================================
-# .gitignore for SearxNG LinkedIn Collector
-# ========================================================================
+# SearxNG LinkedIn Collector - Git Ignore
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 4f21160 (Update .gitignore and remove obsolete cache, log, and report files)
-# Generated files in folders (but keep the directories with .gitkeep)
-logs/*
-!logs/.gitkeep
-
-results/*
-!results/.gitkeep
-
-reports/*
-!reports/.gitkeep
-
-cache/*
-!cache/.gitkeep
-
-exports/*
-!exports/.gitkeep
-
-# Archive and backup folders
-<<<<<<< HEAD
-archive/
-backup_*/
-
-# Generated result files (if in root)
-linkedin_*.csv
-linkedin_*.json
-linkedin_*.txt
-linkedin_*.html
-stanford_*.csv
-stanford_*.json
-search_log_*.txt
-query_cache.json
-
-# But keep these essential text files
-!stanford_keywords_all.txt
-=======
-# Generated folders (data and logs)
-logs/
+# Output directories
 results/
 reports/
+logs/
 cache/
 exports/
-=======
->>>>>>> 4f21160 (Update .gitignore and remove obsolete cache, log, and report files)
-archive/
 backup_*/
 
-# Generated result files (if in root)
-linkedin_*.csv
-linkedin_*.json
-linkedin_*.txt
-linkedin_*.html
-stanford_*.csv
-stanford_*.json
-search_log_*.txt
-query_cache.json
-
-# But keep these essential text files
-!stanford_keywords_all.txt
-
-# Cache files
-query_cache.json
-
-# User-specific settings
-settings.yml
-FIXED_SETTINGS.yml
+# Keep directory structure
+!results/.gitkeep
+!reports/.gitkeep
+!logs/.gitkeep
+!cache/.gitkeep
+!exports/.gitkeep
 
 # Windows
 Thumbs.db
 desktop.ini
+$RECYCLE.BIN/
 
-# Editor files
+# PowerShell
+*.ps1xml
+
+# Temp files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# User-specific
+settings.yml
+!settings.yml.example
+
+# IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
-
-# Temporary files
-*.tmp
-*.bak
-*.log
-
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-
-# Node
-node_modules/
-
-# Mac
-.DS_Store
-
+*.code-workspace
