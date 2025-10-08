@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ErrorBoundary from './components/ErrorBoundary';
 import {
   ThemeProvider,
   createTheme,
@@ -67,9 +68,11 @@ import {
   Build as BuildIcon,
   AutoFixHigh as WizardIcon,
   Help as HelpIcon,
+  MonitorHeart as HealthIcon,
 } from '@mui/icons-material';
 import { QueryBuilder } from './QueryBuilder';
 import { WizardRunner } from './WizardRunner';
+import HealthDashboard from './components/HealthDashboard';
 import { api, exportToCSV, exportToJSON } from './api';
 
 const theme = createTheme({
@@ -650,7 +653,8 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ flexGrow: 1, height: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
@@ -691,6 +695,7 @@ function App() {
           <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tab icon={<SearchIcon />} label="Search" />
             <Tab icon={<FolderIcon />} label="Results" />
+            <Tab icon={<HealthIcon />} label="Health" />
           </Tabs>
 
           <Box sx={{ flexGrow: 1, p: 2 }}>
@@ -1247,6 +1252,21 @@ function App() {
                 </Box>
               </Box>
             )}
+
+            {activeTab === 2 && (
+              <HealthDashboard
+                onHealthChange={(isHealthy) => {
+                  // Update app-wide health status if needed
+                  if (!isHealthy) {
+                    setSnackbar({
+                      open: true,
+                      message: 'System health issues detected. Check the Health tab for details.',
+                      severity: 'error'
+                    });
+                  }
+                }}
+              />
+            )}
           </Box>
         </Box>
 
@@ -1451,7 +1471,8 @@ function App() {
           </Alert>
         </Snackbar>
       </Box>
-    </ThemeProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -3,15 +3,54 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
-const http = require('http');
-const https = require('https');
+
+// Enhanced networking and monitoring
+const logger = require('./utils/Logger');
+const { httpClient } = require('./utils/HttpClient');
+const { circuitBreakers } = require('./utils/CircuitBreaker');
+const healthMonitor = require('./services/HealthMonitor');
+const processMonitor = require('./services/ProcessMonitor');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// Enhanced middleware with correlation IDs and monitoring
 app.use(cors());
 app.use(express.json());
+
+// Correlation ID middleware
+app.use((req, res, next) => {
+  const correlationId = req.headers['x-correlation-id'] || logger.createContext();
+  req.correlationId = correlationId;
+  res.setHeader('X-Correlation-ID', correlationId);
+
+  // Log request
+  logger.info(`${req.method} ${req.path}`, correlationId, {
+    method: req.method,
+    path: req.path,
+    query: req.query,
+    userAgent: req.headers['user-agent'],
+    remoteAddress: req.ip || req.connection.remoteAddress
+  });
+
+  next();
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  logger.error('Unhandled error in API server', req.correlationId, {
+    error: error.message,
+    stack: error.stack,
+    path: req.path,
+    method: req.method
+  });
+
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    correlationId: req.correlationId
+  });
+});
 
 // Paths to PowerShell scripts and data directories
 const rootDir = path.resolve(__dirname, '../../..');
@@ -62,68 +101,393 @@ function runPowerShellScript(scriptPath, args, callback) {
 
 // API Routes
 
-// Test SearxNG connection
+// Test SearxNG connection with enhanced reliability
 app.post('/api/test-connection', async (req, res) => {
   const { searxUrl } = req.body;
+  const correlationId = req.correlationId;
 
   if (!searxUrl) {
-    return res.status(400).json({ success: false, error: 'SearxNG URL is required' });
+    logger.warn('Connection test called without SearxNG URL', correlationId);
+    return res.status(400).json({
+      success: false,
+      error: 'SearxNG URL is required',
+      correlationId
+    });
   }
 
-  // Direct HTTP test to SearxNG
-  try {
-    const testUrl = `${searxUrl}/search?q=test&format=json`;
-    const urlObj = new URL(testUrl);
-    const protocol = urlObj.protocol === 'https:' ? https : http;
+  logger.info(`Testing connection to SearxNG: ${searxUrl}`, correlationId);
 
-    const options = {
-      method: 'GET',
+  try {
+    const testUrl = `${searxUrl}/search?q=health-check&format=json`;
+
+    // Use enhanced HTTP client with circuit breaker and retry logic
+    const startTime = Date.now();
+    const response = await httpClient.get(testUrl, {
+      timeout: 8000, // Slightly longer timeout for connection tests
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json'
-      },
-      timeout: 5000
+        'Accept': 'application/json, text/html, */*'
+      }
+    }, correlationId);
+
+    const responseTime = Date.now() - startTime;
+
+    // Analyze response for detailed health information
+    const healthInfo = {
+      statusCode: response.statusCode,
+      responseTime,
+      hasJsonResponse: typeof response.data === 'object',
+      contentLength: response.rawData?.length || 0,
+      contentType: response.headers['content-type'] || 'unknown'
     };
 
-    const request = protocol.get(testUrl, options, (response) => {
-      if (!res.headersSent) {
-        if (response.statusCode === 200 || response.statusCode === 302) {
-          res.json({ success: true, message: 'Connection successful' });
-        } else {
-          res.status(500).json({ 
-            success: false, 
-            error: `SearxNG returned status code ${response.statusCode}` 
-          });
+    // Check if response indicates healthy SearxNG
+    if (response.statusCode >= 200 && response.statusCode < 400) {
+      let resultsCount = 0;
+      let engines = [];
+
+      // Try to extract additional health info from JSON response
+      if (typeof response.data === 'object' && response.data.results) {
+        resultsCount = response.data.results.length;
+        engines = response.data.unresponsive_engines || [];
+      }
+
+      logger.success(`SearxNG connection successful`, correlationId, {
+        url: searxUrl,
+        responseTime,
+        statusCode: response.statusCode,
+        resultsCount,
+        unresponsiveEngines: engines.length,
+        healthInfo
+      });
+
+      res.json({
+        success: true,
+        message: 'Connection successful',
+        correlationId,
+        details: {
+          ...healthInfo,
+          resultsFound: resultsCount,
+          unresponsiveEngines: engines.length,
+          healthy: engines.length < 5 // Consider healthy if less than 5 engines are down
         }
-      }
-    });
+      });
+    } else {
+      logger.warn(`SearxNG returned non-success status`, correlationId, {
+        url: searxUrl,
+        statusCode: response.statusCode,
+        healthInfo
+      });
 
-    request.on('error', (error) => {
-      if (!res.headersSent) {
-        res.status(500).json({ 
-          success: false, 
-          error: `Failed to connect to SearxNG: ${error.message}` 
-        });
-      }
-    });
-
-    request.on('timeout', () => {
-      request.destroy();
-      if (!res.headersSent) {
-        res.status(500).json({ 
-          success: false, 
-          error: 'Connection timeout - SearxNG is not responding' 
-        });
-      }
-    });
-
-  } catch (error) {
-    if (!res.headersSent) {
-      res.status(500).json({ 
-        success: false, 
-        error: `Invalid URL or connection error: ${error.message}` 
+      res.status(502).json({
+        success: false,
+        error: `SearxNG returned status code ${response.statusCode}`,
+        correlationId,
+        details: healthInfo
       });
     }
+
+  } catch (error) {
+    logger.error('SearxNG connection test failed', correlationId, {
+      url: searxUrl,
+      error: error.message,
+      circuitBreakerOpen: error.circuitBreakerOpen || false
+    });
+
+    let statusCode = 503; // Service Unavailable
+    let errorMessage = error.message;
+
+    // Provide specific error messages based on error type
+    if (error.circuitBreakerOpen) {
+      statusCode = 503;
+      errorMessage = 'SearxNG is temporarily unavailable (circuit breaker is open). Please try again later.';
+    } else if (error.message.includes('timeout')) {
+      statusCode = 504; // Gateway Timeout
+      errorMessage = 'Connection to SearxNG timed out. Please check if SearxNG is running.';
+    } else if (error.message.includes('ECONNREFUSED')) {
+      statusCode = 502; // Bad Gateway
+      errorMessage = 'Cannot connect to SearxNG. Please verify the URL and ensure SearxNG is running.';
+    } else if (error.message.includes('ENOTFOUND')) {
+      statusCode = 502;
+      errorMessage = 'SearxNG hostname could not be resolved. Please check the URL.';
+    }
+
+    res.status(statusCode).json({
+      success: false,
+      error: errorMessage,
+      correlationId,
+      details: {
+        originalError: error.message,
+        circuitBreakerOpen: error.circuitBreakerOpen || false,
+        retryAfter: error.circuitBreakerOpen ? 30 : null
+      }
+    });
+  }
+});
+
+// Health and monitoring endpoints
+
+// Overall system health
+app.get('/api/health', (req, res) => {
+  const correlationId = req.correlationId;
+
+  try {
+    const overallHealth = healthMonitor.getOverallHealth();
+    const services = healthMonitor.getAllServices();
+    const circuitBreakers = healthMonitor.getCircuitBreakerStatus();
+    const processes = processMonitor.getAllProcesses();
+    const connectionStats = httpClient.getConnectionStats();
+
+    logger.health('Health status requested', correlationId, {
+      overallStatus: overallHealth.status,
+      servicesCount: services.length,
+      healthyServices: services.filter(s => s.status === 'healthy').length
+    });
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      correlationId,
+      overall: overallHealth,
+      services: services.map(service => ({
+        id: service.id,
+        name: service.name,
+        status: service.status,
+        uptime: service.uptime,
+        averageResponseTime: service.averageResponseTime,
+        lastCheck: service.lastCheck,
+        issues: service.issues,
+        metadata: service.metadata
+      })),
+      circuitBreakers,
+      processes: processes.map(process => ({
+        id: process.id,
+        name: process.name,
+        status: process.status,
+        uptime: process.startTime ? Date.now() - process.startTime.getTime() : 0,
+        restartCount: process.restartCount,
+        lastRestart: process.lastRestart
+      })),
+      connectionPool: connectionStats
+    });
+  } catch (error) {
+    logger.error('Failed to get health status', correlationId, { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve health status',
+      correlationId
+    });
+  }
+});
+
+// Health history
+app.get('/api/health/history', (req, res) => {
+  const correlationId = req.correlationId;
+  const limit = parseInt(req.query.limit) || 50;
+
+  try {
+    const history = healthMonitor.getHealthHistory(limit);
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      correlationId,
+      history,
+      count: history.length
+    });
+  } catch (error) {
+    logger.error('Failed to get health history', correlationId, { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve health history',
+      correlationId
+    });
+  }
+});
+
+// Force health check
+app.post('/api/health/check/:serviceId?', async (req, res) => {
+  const correlationId = req.correlationId;
+  const serviceId = req.params.serviceId;
+
+  try {
+    if (serviceId) {
+      // Check specific service
+      const result = await healthMonitor.forceCheck(serviceId, correlationId);
+
+      logger.info(`Forced health check for service: ${serviceId}`, correlationId, {
+        serviceStatus: result.status
+      });
+
+      res.json({
+        success: true,
+        correlationId,
+        service: result
+      });
+    } else {
+      // Check all services
+      await healthMonitor.performHealthCheck();
+      const overallHealth = healthMonitor.getOverallHealth();
+
+      logger.info('Forced health check for all services', correlationId);
+
+      res.json({
+        success: true,
+        correlationId,
+        overall: overallHealth
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to perform forced health check', correlationId, {
+      serviceId,
+      error: error.message
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to perform health check',
+      correlationId
+    });
+  }
+});
+
+// Circuit breaker management
+app.get('/api/circuit-breakers', (req, res) => {
+  const correlationId = req.correlationId;
+
+  try {
+    const status = Object.keys(circuitBreakers).map(key => circuitBreakers[key].getStatus());
+
+    res.json({
+      success: true,
+      correlationId,
+      circuitBreakers: status
+    });
+  } catch (error) {
+    logger.error('Failed to get circuit breaker status', correlationId, { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve circuit breaker status',
+      correlationId
+    });
+  }
+});
+
+// Reset circuit breaker
+app.post('/api/circuit-breakers/:name/reset', (req, res) => {
+  const correlationId = req.correlationId;
+  const name = req.params.name;
+
+  try {
+    if (circuitBreakers[name]) {
+      circuitBreakers[name].forceClose();
+
+      logger.info(`Circuit breaker reset: ${name}`, correlationId);
+
+      res.json({
+        success: true,
+        message: `Circuit breaker ${name} has been reset`,
+        correlationId
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: `Circuit breaker not found: ${name}`,
+        correlationId
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to reset circuit breaker', correlationId, {
+      name,
+      error: error.message
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reset circuit breaker',
+      correlationId
+    });
+  }
+});
+
+// Process management
+app.get('/api/processes', (req, res) => {
+  const correlationId = req.correlationId;
+
+  try {
+    const processes = processMonitor.getAllProcesses();
+    const restartHistory = processMonitor.getRestartHistory(20);
+
+    res.json({
+      success: true,
+      correlationId,
+      processes,
+      restartHistory
+    });
+  } catch (error) {
+    logger.error('Failed to get process status', correlationId, { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve process status',
+      correlationId
+    });
+  }
+});
+
+// Start/restart process
+app.post('/api/processes/:processId/start', async (req, res) => {
+  const correlationId = req.correlationId;
+  const processId = req.params.processId;
+
+  try {
+    await processMonitor.startProcess(processId, correlationId);
+
+    logger.info(`Process restart requested: ${processId}`, correlationId);
+
+    res.json({
+      success: true,
+      message: `Process ${processId} start/restart initiated`,
+      correlationId
+    });
+  } catch (error) {
+    logger.error('Failed to start process', correlationId, {
+      processId,
+      error: error.message
+    });
+
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      correlationId
+    });
+  }
+});
+
+// Stop process
+app.post('/api/processes/:processId/stop', async (req, res) => {
+  const correlationId = req.correlationId;
+  const processId = req.params.processId;
+
+  try {
+    await processMonitor.stopProcess(processId, correlationId);
+
+    logger.info(`Process stop requested: ${processId}`, correlationId);
+
+    res.json({
+      success: true,
+      message: `Process ${processId} stopped`,
+      correlationId
+    });
+  } catch (error) {
+    logger.error('Failed to stop process', correlationId, {
+      processId,
+      error: error.message
+    });
+
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      correlationId
+    });
   }
 });
 
@@ -469,8 +833,10 @@ app.post('/api/import', (req, res) => {
     }
     
     // Ensure results directory exists
-    if (!fs.existsSync(searchResultsDir)) {
-      fs.mkdirSync(searchResultsDir, { recursive: true });
+    try {
+      await fs.promises.access(searchResultsDir);
+    } catch (error) {
+      await fs.promises.mkdir(searchResultsDir, { recursive: true });
     }
     
     // Save imported data
@@ -496,7 +862,7 @@ app.post('/api/import', (req, res) => {
       }
     };
     
-    fs.writeFileSync(importFile, JSON.stringify(exportData, null, 2));
+    await fs.promises.writeFile(importFile, JSON.stringify(exportData, null, 2));
     console.log(`Saved imported data to: ${importFile}`);
     
     res.json({ 
@@ -638,7 +1004,7 @@ app.post('/api/keywords', (req, res) => {
     ...keywords
   ].join('\n');
 
-  fs.writeFileSync(keywordsFile, content, 'utf8');
+  await fs.promises.writeFile(keywordsFile, content, 'utf8');
   res.json({ success: true });
 });
 
@@ -702,10 +1068,130 @@ function parseSearchResults(workDir) {
   }
 }
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`SearxNG API Server running on port ${PORT}`);
-  console.log(`Make sure SearxNG is running and PowerShell scripts are available`);
-});
+// Enhanced server startup with monitoring
+async function startServer() {
+  const startupCorrelationId = logger.createContext();
 
-module.exports = app;
+  logger.info('Starting SearxNG API Server...', startupCorrelationId, {
+    port: PORT,
+    nodeVersion: process.version,
+    platform: process.platform,
+    pid: process.pid
+  });
+
+  try {
+    // Start health monitoring
+    logger.info('Initializing health monitoring...', startupCorrelationId);
+    healthMonitor.start();
+
+    // Start process monitoring
+    logger.info('Initializing process monitoring...', startupCorrelationId);
+    processMonitor.start();
+
+    // Start the HTTP server
+    const server = app.listen(PORT, () => {
+      logger.success(`SearxNG API Server running on port ${PORT}`, startupCorrelationId, {
+        port: PORT,
+        environment: process.env.NODE_ENV || 'development',
+        memoryUsage: process.memoryUsage(),
+        uptime: process.uptime()
+      });
+
+      console.log('✅ SearxNG API Server started successfully!');
+      console.log(`🌐 Server running on: http://localhost:${PORT}`);
+      console.log(`📊 Health endpoint: http://localhost:${PORT}/api/health`);
+      console.log(`🔧 Make sure SearxNG is running on port 8888`);
+      console.log('');
+      console.log('📋 Available endpoints:');
+      console.log('  POST /api/test-connection    - Test SearxNG connectivity');
+      console.log('  POST /api/search             - Run search operations');
+      console.log('  GET  /api/health             - System health status');
+      console.log('  GET  /api/health/history     - Health history');
+      console.log('  POST /api/health/check       - Force health check');
+      console.log('  GET  /api/circuit-breakers   - Circuit breaker status');
+      console.log('  GET  /api/processes          - Process status');
+      console.log('');
+    });
+
+    // Enhanced shutdown handling
+    const shutdown = async (signal) => {
+      logger.info(`Received ${signal}, shutting down gracefully...`, startupCorrelationId);
+
+      try {
+        // Stop accepting new connections
+        server.close(() => {
+          logger.info('HTTP server closed', startupCorrelationId);
+        });
+
+        // Stop monitoring services
+        logger.info('Stopping health monitor...', startupCorrelationId);
+        healthMonitor.stop();
+
+        logger.info('Stopping process monitor...', startupCorrelationId);
+        processMonitor.stop();
+
+        // Cleanup HTTP client connections
+        logger.info('Cleaning up HTTP connections...', startupCorrelationId);
+        httpClient.destroy();
+
+        // Log cleanup
+        logger.info('Performing log cleanup...', startupCorrelationId);
+        logger.cleanup();
+
+        logger.success('Server shutdown completed gracefully', startupCorrelationId);
+        process.exit(0);
+      } catch (error) {
+        logger.error('Error during shutdown', startupCorrelationId, {
+          error: error.message
+        });
+        process.exit(1);
+      }
+    };
+
+    // Handle shutdown signals
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+
+    // Handle uncaught exceptions and rejections
+    process.on('uncaughtException', (error) => {
+      logger.error('Uncaught Exception', startupCorrelationId, {
+        error: error.message,
+        stack: error.stack
+      });
+      shutdown('uncaughtException');
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.error('Unhandled Rejection', startupCorrelationId, {
+        reason: reason?.toString() || 'Unknown',
+        promise: promise?.toString() || 'Unknown'
+      });
+    });
+
+    // Periodic log cleanup (every 6 hours)
+    setInterval(() => {
+      logger.cleanup(7); // Keep 7 days of logs
+    }, 6 * 60 * 60 * 1000);
+
+    return server;
+
+  } catch (error) {
+    logger.error('Failed to start server', startupCorrelationId, {
+      error: error.message,
+      stack: error.stack
+    });
+
+    console.error('❌ Failed to start SearxNG API Server:', error.message);
+    process.exit(1);
+  }
+}
+
+// Start the server if this file is run directly
+if (require.main === module) {
+  startServer().catch(error => {
+    console.error('❌ Server startup failed:', error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, startServer, healthMonitor, processMonitor, httpClient, logger };
