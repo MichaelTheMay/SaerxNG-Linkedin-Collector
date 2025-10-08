@@ -1,2 +1,0 @@
-[2025-10-08 02:52:32] [INFO] Script started with parameters: SearxURL=http://localhost:8888, WorkDir=C:\SearxQueries, UseCache=False
-[2025-10-08 02:52:32] [INFO] Directory structure created: logs, results, reports, cache, exports
