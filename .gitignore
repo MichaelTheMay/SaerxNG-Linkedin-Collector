@@ -1,0 +1,75 @@
+# ========================================================================
+# .gitignore for SearxNG LinkedIn Collector
+# ========================================================================
+
+# Generated files in folders (but keep the directories with .gitkeep)
+logs/*
+!logs/.gitkeep
+
+results/*
+!results/.gitkeep
+
+reports/*
+!reports/.gitkeep
+
+cache/*
+!cache/.gitkeep
+
+exports/*
+!exports/.gitkeep
+
+# Archive and backup folders
+archive/
+backup_*/
+
+# Generated result files (if in root)
+linkedin_*.csv
+linkedin_*.json
+linkedin_*.txt
+linkedin_*.html
+stanford_*.csv
+stanford_*.json
+search_log_*.txt
+query_cache.json
+
+# But keep these essential text files
+!stanford_keywords_all.txt
+
+# Cache files
+query_cache.json
+
+# User-specific settings
+settings.yml
+FIXED_SETTINGS.yml
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+
+# Node
+node_modules/
+
+# Mac
+.DS_Store
+
