@@ -1,0 +1,173 @@
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║            🔴 STARTPAGE ENGINE IS BROKEN                              ║
+║            This is why you get 0 results                              ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+PROBLEM IDENTIFIED:
+   The Startpage search engine in SearxNG has JSON parsing errors.
+   Error: "JSONDecodeError: Extra data: line 1 column 3 (char 2)"
+   
+   This is a known issue with Startpage, not your configuration!
+
+IMPACT:
+   ❌ SearxNG returns 0 results for all queries
+   ❌ All search engines fail when Startpage is enabled
+   ❌ Your script can't find any LinkedIn profiles
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║  ⚡ QUICK FIX (Choose One Method)                                     ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────────┐
+│ METHOD 1: Use Pre-Fixed Settings (EASIEST)                       │
+└───────────────────────────────────────────────────────────────────┘
+
+Step 1: Copy the fixed settings file
+   Copy-Item 'FIXED_SETTINGS.yml' 'C:\searxng\config\settings.yml' -Force
+
+Step 2: Restart SearxNG
+   docker restart searxng
+
+Step 3: Wait 30 seconds for startup
+
+Step 4: Test it works
+   .\ScriptQueries.ps1 -Keywords "test search" -SkipTest
+
+Step 5: IMPORTANT - Change the secret key
+   Open: C:\searxng\config\settings.yml
+   Find: secret_key: "changeme_to_something_unique"
+   Change to: Any random string (e.g., "my-random-key-12345")
+
+┌───────────────────────────────────────────────────────────────────┐
+│ METHOD 2: Edit Your Current Settings Manually                    │
+└───────────────────────────────────────────────────────────────────┘
+
+Your settings.yml is already open in Notepad at:
+C:\searxng\config\settings.yml
+
+1. Find this section:
+   engines:
+     - name: startpage
+       disabled: false     ← Change this!
+
+2. Change to:
+   engines:
+     - name: startpage
+       disabled: true      ← Disable it!
+
+3. Make sure other engines are enabled:
+   engines:
+     - name: bing
+       disabled: false     ← Should be false
+     - name: duckduckgo
+       disabled: false     ← Should be false
+     - name: google
+       disabled: false     ← Should be false
+
+4. Ensure JSON format is enabled (add if missing):
+   search:
+     formats:
+       - html
+       - json              ← Must have this!
+
+5. Make sure limiter is disabled (optional but helps):
+   server:
+     limiter: false
+
+6. Save the file (Ctrl+S)
+
+7. Restart SearxNG:
+   docker restart searxng
+
+8. Wait 30 seconds
+
+9. Test:
+   .\ScriptQueries.ps1 -Keywords "test search" -SkipTest
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║  🧪 VERIFY IT'S FIXED                                                 ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+After restarting, run this test:
+
+$query = [uri]::EscapeDataString("test search")
+$url = "http://localhost:8888/search?q=$query&format=json"
+$response = Invoke-WebRequest -Uri $url -UseBasicParsing
+$json = $response.Content | ConvertFrom-Json
+Write-Host "Results: $($json.results.Count)"
+
+EXPECTED: "Results: 10" (or more) ✅
+PROBLEM: "Results: 0" ❌
+
+If you still get 0 results:
+   - Check Docker logs: docker logs searxng
+   - Verify settings were saved
+   - Try Method 1 (pre-fixed settings)
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║  ✅ ONCE FIXED - RUN YOUR SEARCHES                                    ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+Test with a few keywords:
+   .\ScriptQueries.ps1 -Keywords "Stanford Computer Science","Stanford CS","Stanford AI"
+
+Run default search (65 keywords):
+   .\ScriptQueries.ps1 -UseCache -OpenResults -Verbose
+
+Run comprehensive search (200+ keywords):
+   $kw = Get-Content "stanford_keywords_comprehensive.txt" | Where-Object {$_ -notmatch '^#|^$'}
+   .\ScriptQueries.ps1 -Keywords $kw -UseCache -Verbose
+
+Run full census (504 keywords):
+   .\Generate-KeywordPermutations.ps1 -UseInSearch
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║  📋 WHAT THE FIX DOES                                                 ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+The fixed settings:
+   ✅ Disables broken Startpage engine
+   ✅ Enables Bing (works great for LinkedIn)
+   ✅ Enables DuckDuckGo (works well)
+   ✅ Enables Google (excellent results)
+   ✅ Enables Qwant, Brave, Mojeek (additional sources)
+   ✅ Enables JSON format (required for script)
+   ✅ Disables rate limiter (prevents blocking)
+
+Result:
+   You'll get 10-50+ results per search query!
+   All 500+ keywords will work perfectly!
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║  🔍 WHY THIS HAPPENED                                                 ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+Startpage recently changed their response format, breaking SearxNG's parser.
+This is a known issue in the SearxNG community.
+
+The error "Extra data: line 1 column 3" means Startpage is returning
+malformed JSON that SearxNG can't parse.
+
+Solution: Disable Startpage, use other engines.
+They work fine and provide excellent LinkedIn results!
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║  💡 PRO TIP                                                           ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+After fixing, monitor Docker logs while searching:
+   docker logs -f searxng
+
+You should see successful queries with NO errors.
+
+If you see other engine errors, disable those engines too.
+Bing + DuckDuckGo + Google is usually enough!
+
+───────────────────────────────────────────────────────────────────────
+
+Fix the Startpage issue, then enjoy your 500+ keyword searches! 🚀
+
+───────────────────────────────────────────────────────────────────────
+

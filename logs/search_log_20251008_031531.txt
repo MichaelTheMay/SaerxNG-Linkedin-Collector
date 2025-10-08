@@ -11,3 +11,8 @@
 [2025-10-08 03:18:40] [INFO] Page 1 returned no new unique results, stopping pagination
 [2025-10-08 03:18:40] [WARN] Query returned no results
 [2025-10-08 03:18:42] [INFO] Executing query: site:linkedin.com Stanford PhD Computer Science
+[2025-10-08 03:20:07] [SUCCESS] Query successful: 350 results added from 89 pages
+[2025-10-08 03:20:09] [INFO] Executing query: site:linkedin.com Stanford Ph.D. CS
+[2025-10-08 03:20:10] [INFO] Page 1 returned no new unique results, stopping pagination
+[2025-10-08 03:20:10] [WARN] Query returned no results
+[2025-10-08 03:20:12] [INFO] Executing query: site:linkedin.com Stanford MS Computer Science
