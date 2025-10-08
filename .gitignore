@@ -3,6 +3,9 @@
 # ========================================================================
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 4f21160 (Update .gitignore and remove obsolete cache, log, and report files)
 # Generated files in folders (but keep the directories with .gitkeep)
 logs/*
 !logs/.gitkeep
@@ -20,6 +23,7 @@ exports/*
 !exports/.gitkeep
 
 # Archive and backup folders
+<<<<<<< HEAD
 archive/
 backup_*/
 
@@ -42,6 +46,8 @@ results/
 reports/
 cache/
 exports/
+=======
+>>>>>>> 4f21160 (Update .gitignore and remove obsolete cache, log, and report files)
 archive/
 backup_*/
 
