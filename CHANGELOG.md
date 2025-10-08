@@ -1,84 +1,95 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project.
 
 ## [2.1.0] - 2025-10-08
 
 ### Added
-- **Complete Pagination**: Script now scrapes every single result per query (not just first page)
-  - Automatic pagination through all available pages
-  - Smart stopping when no new unique results found
-  - Configurable `MaxPagesPerQuery` (default: 100)
-  - Real-time page progress: `→ Page 2... +15`
-  - 10-50x more results per query
 
-- **Organized Directory Structure**: Files automatically organized into logical folders
-  - `logs/` - Search execution logs
-  - `results/` - CSV, JSON, TXT data files
-  - `reports/` - HTML reports
-  - `cache/` - Query cache
-  - `exports/` - Custom exports
+**Graphical User Interface**
+- Modern WPF-based UI for keyword management
+- Visual keyword editor (add, edit, delete, filter)
+- Load/save keyword sets
+- Integrated permutation generator
+- Visual configuration panel
+- Background search execution
+- Live output console
+- Quick folder access buttons
+- Connection testing
+- Start/stop controls
 
-- **Enhanced Keywords**: Comprehensive keyword system with 500+ permutations
-  - 65 built-in default keywords with common abbreviations
-  - Generate-KeywordPermutations.ps1 utility (creates 504 variations)
-  - Covers all degree variations (PhD, Ph.D., MS, M.S., etc.)
-  - All research area abbreviations (AI, ML, NLP, CV, DL, etc.)
+**Complete Pagination**
+- Scrape all results per query (not just first page)
+- Automatic pagination through all pages
+- Smart stopping on no new results
+- Configurable max pages (default: 100)
+- Real-time page progress
+- 10-50x more results per query
 
-- **Migration Tools**:
-  - Migrate-ToOrganizedStructure.ps1 for easy transition from v2.0
-  - Dry-run mode and automatic backup option
+**Organized Directory Structure**
+- Auto-organized folders: `logs/`, `results/`, `reports/`, `cache/`, `exports/`
+- Automatic directory creation
+- Clean, professional organization
 
-- **Enhanced UI**:
-  - Directory structure overview on startup
-  - Page-by-page progress tracking
-  - Organized file summaries
-  - Quick access commands for all folders
+**Enhanced Keywords**
+- 500+ keyword permutations via generator
+- 65 built-in default keywords
+- All degree variations (PhD, Ph.D., MS, etc.)
+- Research area abbreviations (AI, ML, NLP, etc.)
+
+**Migration Tools**
+- Migrate-ToOrganizedStructure.ps1
+- Dry-run mode
+- Automatic backup option
+
+**Enhanced UI**
+- Directory structure overview
+- Page-by-page progress tracking
+- Organized file summaries
+- Quick access commands
 
 ### Fixed
-- SearxNG compatibility issues with broken engines
-- Timeout handling (increased from 3s to 10s)
+- SearxNG compatibility with broken engines
+- Timeout handling (3s → 10s)
 - Rate limiting improvements
 - Engine configuration warnings
 
 ### Changed
-- Updated version banner to v2.1
-- Consolidated all documentation into single README.md
-- Export paths now use organized folder structure
-- Cache file moved to dedicated `cache/` folder
-- Logs moved to dedicated `logs/` folder
+- Updated to v2.1
+- Consolidated documentation
+- Export paths use organized structure
+- Cache/logs moved to dedicated folders
 
 ## [2.0.0] - 2025-10-07
 
 ### Added
-- Command-line parameters for automation
-- Interactive mode for keyword selection
-- Smart caching system (24-hour expiration)
-- Beautiful HTML reports with statistics
-- Progress bars and real-time updates
-- Comprehensive logging to file
-- Advanced data analysis and grouping
+- Command-line parameters
+- Interactive mode
+- Smart caching (24hr)
+- HTML reports with statistics
+- Progress bars
+- File logging
+- Data analysis and grouping
 - Top performers ranking
-- Auto-open results option
-- Professional UI with colored output
-- Better retry logic with exponential backoff
+- Auto-open results
+- Colored output
+- Retry logic with backoff
 - URL cleaning and deduplication
 - Multiple export formats
 
 ### Changed
-- Complete rewrite from basic script
-- Added professional error handling
-- Improved configuration system
+- Complete rewrite
+- Professional error handling
+- Improved configuration
 
 ## [1.0.0] - 2025-10-06
 
 ### Added
 - Initial release
-- Basic SearxNG query functionality
+- Basic SearxNG queries
 - LinkedIn profile collection
 - CSV export
 
 ---
 
 **Note**: This project follows [Semantic Versioning](https://semver.org/).
-
