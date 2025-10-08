@@ -6,7 +6,7 @@
 [CmdletBinding()]
 param(
     [string]$SearxURL = "http://localhost:8888",
-    [string]$WorkDir = "C:\SearxQueries",
+    [string]$WorkDir = (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)),
     [string[]]$Keywords,
     [switch]$UseCache,
     [switch]$SkipTest,
@@ -48,13 +48,15 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
 # Create directory structure
+$DataDir = Join-Path $Config.WorkDir "data"
 $Directories = @{
     Root = $Config.WorkDir
-    Logs = Join-Path $Config.WorkDir "logs"
-    Results = Join-Path $Config.WorkDir "results"
-    Reports = Join-Path $Config.WorkDir "reports"
-    Cache = Join-Path $Config.WorkDir "cache"
-    Export = Join-Path $Config.WorkDir "exports"
+    Data = $DataDir
+    Logs = Join-Path $DataDir "logs"
+    Results = Join-Path $DataDir "results"
+    Reports = Join-Path $DataDir "reports"
+    Cache = Join-Path $DataDir "cache"
+    Export = Join-Path $DataDir "exports"
 }
 
 foreach ($dir in $Directories.Values) {

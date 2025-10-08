@@ -1,0 +1,31 @@
+{
+  "name": "searxng-linkedin-collector",
+  "version": "3.0.0",
+  "description": "Powerful tool for collecting LinkedIn profiles via SearxNG's privacy-focused metasearch engine",
+  "private": true,
+  "workspaces": [
+    "packages/api",
+    "packages/ui"
+  ],
+  "scripts": {
+    "install:all": "npm install && cd packages/api && npm install && cd ../ui && npm install",
+    "dev:api": "cd packages/api && npm start",
+    "dev:ui": "cd packages/ui && npm run dev",
+    "build:ui": "cd packages/ui && npm run build",
+    "start": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
+    "clean": "rimraf packages/*/node_modules node_modules"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "rimraf": "^5.0.5"
+  },
+  "keywords": [
+    "searxng",
+    "linkedin",
+    "scraper",
+    "metasearch",
+    "privacy"
+  ],
+  "author": "",
+  "license": "MIT"
+}

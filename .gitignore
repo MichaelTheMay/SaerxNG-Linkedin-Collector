@@ -1,134 +1,57 @@
-# SearxNG LinkedIn Collector - Git Ignore
+# Node modules
+node_modules/
+dist/
 
-# ============== Output Directories ==============
-results/*
-!results/.gitkeep
-reports/*
-!reports/.gitkeep
-logs/*
-!logs/.gitkeep
-cache/*
-!cache/.gitkeep
-exports/*
-!exports/.gitkeep
-backup_*/
+# Data directories (exclude cached and generated data)
+data/cache/*
+data/logs/*
+data/reports/*
+data/results/*
+!data/cache/.gitkeep
+!data/logs/.gitkeep
+!data/reports/.gitkeep
+!data/results/.gitkeep
+!data/exports/.gitkeep
 
-# ============== Windows ==============
-Thumbs.db
-Desktop.ini
-desktop.ini
-$RECYCLE.BIN/
-*.stackdump
-*.lnk
-
-# ============== PowerShell ==============
-*.ps1xml
-*.psm1xml
-
-# ============== Temp & Generated Files ==============
-*.tmp
-*.temp
+# Logs
 *.log
-*.cache
-*.bak
-*.swp
-*~
-.DS_Store
+logs/
 
-# Progress tracking files
-*_progress_*.json
+# Environment files
+.env
+.env.local
+.env.*.local
 
-# ============== User-Specific Config ==============
-settings.yml
-!settings.yml.example
-
-# User keyword files (keep examples)
-*_keywords.txt
-!stanford_keywords_all.txt
-
-# ============== IDE & Editors ==============
-# VSCode
+# IDE files
 .vscode/
-*.code-workspace
-
-# JetBrains
 .idea/
-*.iml
-*.iws
-*.ipr
-
-# Sublime Text
-*.sublime-project
-*.sublime-workspace
-
-# Vim
 *.swp
 *.swo
 *~
 
-# Emacs
-*~
-\#*\#
-.\#*
-
-# ============== OS ==============
-# macOS
+# OS files
 .DS_Store
-.AppleDouble
-.LSOverride
-._*
+Thumbs.db
+desktop.ini
 
-# Linux
-*~
-.directory
+# Build artifacts
+build/
+*.tsbuildinfo
 
-# ============== Package Managers ==============
-# Node (if any JS tools are added)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# Python (if any Python tools are added)
-__pycache__/
-*.py[cod]
-*$py.class
-venv/
-env/
-.env
-
-# ============== Security ==============
-# Never commit these
-*.key
-*.pem
-*.p12
-*.pfx
-secrets/
-.env.local
-.env.*.local
-
-# API keys and tokens
-*api_key*
-*token*
-*secret*
-
-# ============== Testing & CI ==============
-test-results/
+# Test coverage
 coverage/
 .nyc_output/
 
-# ============== Build & Deploy ==============
-dist/
-build/
-out/
-*.zip
-*.tar.gz
-*.7z
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
 
-# ============== Documentation Build ==============
-docs/_build/
-site/
-
-# ============== Misc ==============
-.history/
-.cache/
+# Backup directories
+backup_*/

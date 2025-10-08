@@ -7,31 +7,52 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](.github/PULL_REQUEST_TEMPLATE.md)
 
 > Powerful PowerShell tool for collecting LinkedIn profiles via SearxNG's privacy-focused metasearch engine.
-
-**✨ NEW in v2.2:** Parallel execution & real-time progress tracking!
+**✨ NEW in v3.0:** React UI with Interactive Wizard & Advanced Query Builder!  
+**Previous (v2.2):** Parallel execution & real-time progress tracking
 
 ## 🧭 Quick Links
 
-- **First time?** → [QUICK_START.md](QUICK_START.md)
-- **Using UI?** → [UI_GUIDE.md](UI_GUIDE.md)
+- **First time?** → [USAGE_GUIDE.md](USAGE_GUIDE.md) | **[Launch Interactive Wizard](searx-ui/)** 🧙‍♂️
+- **React UI?** → [searx-ui/](searx-ui/) | [Wizard Guide](searx-ui/WIZARD_GUIDE.md)
+- **Query Builder?** → [Query Examples](example-queries/)
+- **PowerShell UI?** → [UI_GUIDE.md](UI_GUIDE.md)
 - **Parallel execution?** → [PARALLEL_EXECUTION_GUIDE.md](PARALLEL_EXECUTION_GUIDE.md)
 - **What's new?** → [CHANGELOG.md](CHANGELOG.md)
-- **All files?** → [FILES_OVERVIEW.md](FILES_OVERVIEW.md)
 
 ## ⚡ Quick Start
 
-```powershell
-# Launch graphical interface (recommended)
-.\SearxQueriesUI.ps1
-# Or double-click: Launch-UI.bat
+### React UI (Modern Web Interface)
 
-# Command line
-.\ScriptQueries.ps1
+**Easy Launch (Recommended):**
+```powershell
+# Start everything at once
+.\Start-All.ps1
+
+# Or start individual components:
+.\Start-API.ps1     # Start just the API server
+.\Start-UI.ps1      # Start just the React UI
+```
+
+**Manual Launch:**
+```bash
+# Install all dependencies
+npm run install:all
+
+# Start API server in one terminal
+npm run dev:api
+
+# Start UI in another terminal
+npm run dev:ui
+
+# Or start both simultaneously
+npm start
 ```
 
 ## ✨ Key Features
 
-### UI Edition (NEW in v2.2!)
+### UI Editions
+
+#### PowerShell UI (v2.2)
 - 🎨 **Visual keyword editor** - Add, edit, delete, filter keywords
 - 📂 **File management** - Load/save keyword sets
 - 🔄 **Permutation generator** - Create 500+ keyword variations
@@ -40,6 +61,16 @@
 - ⚡ **Parallel execution** - Run multiple searches simultaneously (3-5x faster!)
 - 🚀 **Background execution** - UI stays responsive
 - 🎛️ **Throttle control** - Configure max concurrent threads
+
+#### React UI (Modern Web Interface)
+- 🌐 **Web-based interface** - Access from any browser
+- 📱 **Responsive design** - Works on desktop and mobile
+- 🎯 **Material-UI components** - Modern, professional appearance
+- 🔄 **Real-time updates** - Live progress and status updates
+- 📊 **Interactive results viewer** - Clickable links and export options
+- ⚙️ **Advanced configuration** - Comprehensive settings panel
+- 🚀 **Fast development** - Built with Vite for rapid iteration
+- 🔌 **API-ready** - Designed for backend integration
 
 ### Core Features
 - **Complete pagination** - Scrape all results (10-50x more data)
@@ -58,10 +89,17 @@
 
 ## 🎯 Usage
 
-### Graphical Interface
+### Graphical Interfaces
 
+**React UI (Recommended):**
 ```powershell
-.\SearxQueriesUI.ps1
+.\Start-All.ps1
+# Opens http://localhost:5173 in your browser
+```
+
+**PowerShell UI (Legacy):**
+```powershell
+.\packages\scripts\SearxQueriesUI.ps1
 ```
 
 1. Load keywords (file/generate/add manually)
@@ -74,27 +112,37 @@
 
 ```powershell
 # Default search
-.\ScriptQueries.ps1
+.\packages\scripts\ScriptQueries.ps1
 
 # Interactive mode
-.\ScriptQueries.ps1 -Interactive
+.\packages\scripts\ScriptQueries.ps1 -Interactive
 
 # Custom keywords with options
-.\ScriptQueries.ps1 -Keywords "Stanford AI","Stanford ML" -UseCache -OpenResults
+.\packages\scripts\ScriptQueries.ps1 -Keywords "Stanford AI","Stanford ML" -UseCache -OpenResults
+
+# Parallel execution
+.\packages\scripts\ScriptQueriesParallel.ps1 -Keywords "test" -Parallel -ThrottleLimit 5
 
 # Generate keyword permutations
-.\Generate-KeywordPermutations.ps1 -ExportToFile keywords.txt
+.\packages\scripts\Generate-KeywordPermutations.ps1 -ExportToFile .\data\keywords.txt
 ```
 
 ## 📁 Output Structure
 
 ```
 C:\SearxQueries\
-├── results/      ← CSV, JSON, TXT files
-├── reports/      ← HTML reports
-├── logs/         ← Search logs
-├── cache/        ← Query cache
-└── exports/      ← Custom exports
+├── data/
+│   ├── results/      ← CSV, JSON, TXT files
+│   ├── reports/      ← HTML reports
+│   ├── logs/         ← Search logs
+│   ├── cache/        ← Query cache
+│   └── exports/      ← Custom exports
+├── packages/
+│   ├── api/          ← Node.js Express API server
+│   ├── ui/           ← React + TypeScript frontend
+│   └── scripts/      ← PowerShell automation scripts
+├── shared/           ← Shared types and utilities
+└── docs/             ← Documentation and examples
 ```
 
 ## ⚙️ Configuration
@@ -186,13 +234,12 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ## 📚 Documentation
 
 - **[README.md](README.md)** - This file (overview)
-- **[QUICK_START.md](QUICK_START.md)** - 5-minute setup
-- **[UI_GUIDE.md](UI_GUIDE.md)** - Complete UI documentation
-- **[UI_WORKFLOW.md](UI_WORKFLOW.md)** - Visual workflows
-- **[OPTIMIZATIONS.md](OPTIMIZATIONS.md)** - Performance optimizations ⚡ NEW
-- **[CHANGELOG.md](CHANGELOG.md)** - Version history
-- **[FILES_OVERVIEW.md](FILES_OVERVIEW.md)** - File navigation
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guide
+- **[docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md)** - Complete usage guide
+- **[docs/QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)** - Quick reference
+- **[docs/CHANGELOG.md](docs/CHANGELOG.md)** - Version history
+- **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guide
+- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Migration from v2.x to v3.x
+- **[NEW-STRUCTURE.md](NEW-STRUCTURE.md)** - New monorepo structure guide
 
 ## 🎓 Examples
 
@@ -239,10 +286,64 @@ Free to use and modify. No warranty. Use at your own risk.
 
 ## 💻 System Requirements
 
-- OS: Windows 10/11
-- PowerShell: 5.1 or later
+### For React UI
+- OS: Windows 10/11, macOS, Linux
+- Node.js: 14 or higher
+- npm: 6 or higher
+- Modern web browser (Chrome, Firefox, Edge)
 - SearxNG: Running instance with JSON enabled
-- .NET: Framework 4.5+ (pre-installed)
+
+## 🔧 Troubleshooting
+
+### React UI - Network Connection Issues
+
+If you're experiencing "Network Failure" or connection test failures:
+
+**Quick Fix:**
+```bash
+# Navigate to React UI folder
+cd searx-ui
+
+# Run the launcher script
+.\Start-ReactUI.ps1  # Windows PowerShell
+# or
+./Start-ReactUI.bat  # Windows Batch
+```
+
+**Common Issues:**
+
+1. **"Connection test failed"**
+   - **Cause**: SearxNG is not running
+   - **Fix**: Ensure SearxNG is accessible at http://localhost:8888
+   - **Test**: Open http://localhost:8888/search?q=test&format=json in your browser
+
+2. **"Module not found" errors**
+   - **Cause**: Dependencies not installed
+   - **Fix**:
+     ```bash
+     cd searx-ui
+     npm install
+     ```
+
+3. **Port conflicts (5173)**
+   - **Cause**: Another service is using port 5173
+   - **Fix**: Kill the conflicting process or the port will auto-increment
+
+4. **CORS errors**
+   - **Cause**: SearxNG doesn't allow cross-origin requests
+   - **Fix**: Ensure SearxNG is configured with proper CORS headers
+
+### Search Issues
+
+- **No results found**: Check that SearxNG can access search engines (DuckDuckGo, Bing, Google)
+- **Empty LinkedIn results**: Verify LinkedIn profiles are being indexed by your search engines
+- **Slow searches**: Increase the delay between requests in settings
+
+### General Issues
+
+- **Browser compatibility**: Use a modern browser (Chrome, Firefox, Edge)
+- **Node.js version**: Ensure you're using Node.js 14 or higher
+- **Network connectivity**: Ensure your internet connection is stable
 
 ## 🤝 Contributing
 

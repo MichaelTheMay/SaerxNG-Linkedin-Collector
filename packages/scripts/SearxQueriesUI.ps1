@@ -14,12 +14,28 @@ Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 
+# Set DPI awareness for proper scaling on high-DPI displays
+try {
+    [Windows.Forms.Application]::SetCompatibleTextRenderingDefault($true)
+    if ([System.Environment]::OSVersion.Version.Major -ge 6) {
+        $dpiAwareness = Add-Type -MemberDefinition @"
+[DllImport("user32.dll")]
+public static extern bool SetProcessDPIAware();
+"@ -Name "Win32" -Namespace "Win32" -PassThru
+        $dpiAwareness::SetProcessDPIAware() | Out-Null
+    }
+} catch {
+    # DPI awareness not critical, continue without it
+}
+
 # ============== XAML UI DEFINITION ==============
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SearxNG LinkedIn Collector - UI" Height="800" Width="1300" 
-        WindowStartupLocation="CenterScreen" Background="#F5F5F5">
+        Title="SearxNG LinkedIn Collector - UI" Height="800" Width="1300"
+        WindowStartupLocation="CenterScreen" Background="#F5F5F5"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
     <Window.Resources>
         <Style TargetType="Button">
             <Setter Property="Padding" Value="10,5"/>
@@ -356,7 +372,6 @@ $window = [Windows.Markup.XamlReader]::Load($reader)
 # ============== GET UI ELEMENTS ==============
 # Main controls
 $mainTabs = $window.FindName("MainTabs")
-$searchTab = $window.FindName("SearchTab")
 $resultsTab = $window.FindName("ResultsTab")
 
 # Search tab controls
@@ -408,11 +423,11 @@ $refreshReportsBtn = $window.FindName("RefreshReportsBtn")
 $openInBrowserBtn = $window.FindName("OpenInBrowserBtn")
 $exportResultsBtn = $window.FindName("ExportResultsBtn")
 $resultsViewer = $window.FindName("ResultsViewer")
-$resultsScrollViewer = $window.FindName("ResultsScrollViewer")
 
 # ============== GLOBAL STATE ==============
 $script:keywords = New-Object System.Collections.ObjectModel.ObservableCollection[string]
 $script:allKeywords = @()
+$script:selectedKeywords = New-Object System.Collections.ObjectModel.ObservableCollection[string]
 $script:isSearchRunning = $false
 $script:searchJob = $null
 $script:timer = $null
@@ -435,7 +450,7 @@ function Write-Console {
 function Update-KeywordCount {
     $window.Dispatcher.Invoke([action]{
         $keywordCountText.Text = "Keywords: $($script:keywords.Count)"
-        $selectedCountText.Text = "Selected: $($keywordsList.SelectedItems.Count)"
+        $selectedCountText.Text = "Selected: $($script:selectedKeywords.Count)"
     })
 }
 
@@ -473,7 +488,7 @@ function Hide-Progress {
     })
 }
 
-function Refresh-KeywordsList {
+function Update-KeywordsList {
     param([string]$filter = "")
     $script:keywords.Clear()
     if ([string]::IsNullOrWhiteSpace($filter)) {
@@ -545,7 +560,7 @@ function Show-InputDialog {
     $dialog.ShowDialog()
 }
 
-function Load-DefaultKeywords {
+function Initialize-DefaultKeywords {
     $defaultKeywords = @(
         "Stanford Computer Science",
         "Stanford AI",
@@ -558,12 +573,12 @@ function Load-DefaultKeywords {
     )
     
     $script:allKeywords = $defaultKeywords
-    Refresh-KeywordsList
+    Update-KeywordsList
     Write-Console "Loaded $($defaultKeywords.Count) default keywords"
     Update-Status "Loaded default keywords"
 }
 
-function Load-RecentReports {
+function Initialize-RecentReports {
     $reportsPath = Join-Path $workDirBox.Text "reports"
     Write-Console "Scanning reports directory: $reportsPath"
     if (Test-Path $reportsPath) {
@@ -588,7 +603,7 @@ function Load-RecentReports {
     }
 }
 
-function Load-HtmlReport {
+function Show-HtmlReport {
     param([string]$HtmlPath)
     
     if (-not (Test-Path $HtmlPath)) {
@@ -680,7 +695,7 @@ function Load-HtmlReport {
                         $hyperlink = New-Object System.Windows.Documents.Hyperlink($urlRun)
                         $hyperlink.NavigateUri = $url
                         $hyperlink.Add_RequestNavigate({
-                            param($sender, $e)
+                            param($s, $e)
                             Start-Process $e.Uri.AbsoluteUri
                         })
                         $resultPara.Inlines.Add($hyperlink)
@@ -715,11 +730,20 @@ function Load-HtmlReport {
 
 # Filter box text changed
 $filterBox.Add_TextChanged({
-    Refresh-KeywordsList -filter $filterBox.Text
+    Update-KeywordsList -filter $filterBox.Text
 })
 
 # Keywords list selection changed
 $keywordsList.Add_SelectionChanged({
+    # Update selected keywords by mapping selected items back to original keywords
+    $script:selectedKeywords.Clear()
+    foreach ($selectedItem in $keywordsList.SelectedItems) {
+        # Find the original keyword that matches this selected item
+        $matchingKeyword = $script:allKeywords | Where-Object { $_ -eq $selectedItem }
+        if ($matchingKeyword) {
+            $script:selectedKeywords.Add($matchingKeyword)
+        }
+    }
     Update-KeywordCount
 })
 
@@ -729,7 +753,7 @@ $addKeywordBtn.Add_Click({
         param($newKeyword)
         if ($script:allKeywords -notcontains $newKeyword) {
             $script:allKeywords += $newKeyword
-            Refresh-KeywordsList -filter $filterBox.Text
+            Update-KeywordsList -filter $filterBox.Text
             Write-Console "Added keyword: $newKeyword"
             Update-Status "Added keyword"
         } else {
@@ -746,7 +770,7 @@ $editKeywordBtn.Add_Click({
         Show-InputDialog -Title "Edit Keyword" -Label "Edit keyword:" -DefaultValue $selected -OnOk {
             param($newValue)
             $script:allKeywords[$index] = $newValue
-            Refresh-KeywordsList -filter $filterBox.Text
+            Update-KeywordsList -filter $filterBox.Text
             Write-Console "Edited keyword: $selected -> $newValue"
             Update-Status "Keyword updated"
         }
@@ -757,11 +781,13 @@ $editKeywordBtn.Add_Click({
 
 # Delete keyword button
 $deleteKeywordBtn.Add_Click({
-    if ($keywordsList.SelectedItems.Count -gt 0) {
-        if ([System.Windows.MessageBox]::Show("Delete $($keywordsList.SelectedItems.Count) selected keyword(s)?", "Confirm Delete", "YesNo", "Question") -eq "Yes") {
-            $toDeleteSet = [System.Collections.Generic.HashSet[string]]::new([string[]]$keywordsList.SelectedItems)
+    if ($script:selectedKeywords.Count -gt 0) {
+        if ([System.Windows.MessageBox]::Show("Delete $($script:selectedKeywords.Count) selected keyword(s)?", "Confirm Delete", "YesNo", "Question") -eq "Yes") {
+            $toDeleteSet = [System.Collections.Generic.HashSet[string]]::new([string[]]$script:selectedKeywords)
             $script:allKeywords = [System.Collections.Generic.List[string]]::new(($script:allKeywords | Where-Object { -not $toDeleteSet.Contains($_) }))
-            Refresh-KeywordsList -filter $filterBox.Text
+            # Clear selected keywords since we're deleting them
+            $script:selectedKeywords.Clear()
+            Update-KeywordsList -filter $filterBox.Text
             Write-Console "Deleted $($toDeleteSet.Count) keyword(s)"
             Update-Status "Keywords deleted"
         }
@@ -774,7 +800,8 @@ $deleteKeywordBtn.Add_Click({
 $clearAllBtn.Add_Click({
     if ([System.Windows.MessageBox]::Show("Clear all keywords? This cannot be undone.", "Confirm Clear", "YesNo", "Warning") -eq "Yes") {
         $script:allKeywords = @()
-        Refresh-KeywordsList
+        $script:selectedKeywords.Clear()
+        Update-KeywordsList
         Write-Console "Cleared all keywords"
         Update-Status "All keywords cleared"
     }
@@ -783,6 +810,7 @@ $clearAllBtn.Add_Click({
 # Select all button
 $selectAllBtn.Add_Click({
     $keywordsList.SelectAll()
+    # This will trigger the SelectionChanged event which updates selectedKeywords
 })
 
 # Deselect all button
@@ -808,14 +836,16 @@ $loadFromFileBtn.Add_Click({
             $allLines = [System.IO.File]::ReadAllLines($openFileDialog.FileName)
             Write-Console "Total lines read: $($allLines.Count)"
             
-            $script:allKeywords = $allLines | 
+            $script:allKeywords = $allLines |
                 Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } |
                 ForEach-Object { $_.Trim() }
-            
+
             Write-Console "Valid keywords: $($script:allKeywords.Count)"
             Write-Console "Comment lines skipped: $($allLines.Count - $script:allKeywords.Count)"
-            
-            Refresh-KeywordsList
+
+            # Clear selected keywords when loading new ones
+            $script:selectedKeywords.Clear()
+            Update-KeywordsList
             Write-Console "Keywords loaded successfully"
             Write-Console "========================================="
             Update-Status "Keywords loaded from file"
@@ -880,7 +910,9 @@ $generatePermutationsBtn.Add_Click({
             & $scriptPath -ExportToFile $tempFile
             if (Test-Path $tempFile) {
                 $script:allKeywords = [System.IO.File]::ReadAllLines($tempFile) | Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } | ForEach-Object { $_.Trim() }
-                Refresh-KeywordsList
+                # Clear selected keywords when loading new ones
+                $script:selectedKeywords.Clear()
+                Update-KeywordsList
                 Write-Console "Generated and loaded $($script:allKeywords.Count) keyword permutations"
                 Update-Status "Permutations generated"
                 Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
@@ -947,7 +979,7 @@ $runSearchBtn.Add_Click({
         [System.Windows.MessageBox]::Show("A search is already running.", "Search Running", "OK", "Information")
         return
     }
-    $keywordsToSearch = if ($keywordsList.SelectedItems.Count -gt 0) { @($keywordsList.SelectedItems) } else { $script:allKeywords }
+    $keywordsToSearch = if ($script:selectedKeywords.Count -gt 0) { @($script:selectedKeywords) } else { $script:allKeywords }
     if ([System.Windows.MessageBox]::Show("Run search with $($keywordsToSearch.Count) keyword(s)?`n`nThis may take several minutes depending on the number of keywords.", "Confirm Search", "YesNo", "Question") -eq "Yes") {
         $script:isSearchRunning = $true
         $script:searchStartTime = Get-Date
@@ -1070,11 +1102,11 @@ $runSearchBtn.Add_Click({
                 
                 # Automatically load the latest report in Results tab
                 Write-Console "Loading results into viewer..."
-                Load-RecentReports
+                Initialize-RecentReports
                 if ($script:recentReports.Count -gt 0) {
                     $latestReport = $script:recentReports[0].FullName
                     Write-Console "Switching to Results tab..."
-                    Load-HtmlReport -HtmlPath $latestReport
+                    Show-HtmlReport -HtmlPath $latestReport
                     $mainTabs.SelectedItem = $resultsTab
                     Write-Console "Results tab activated"
                 }
@@ -1085,8 +1117,8 @@ $runSearchBtn.Add_Click({
             elseif ($script:searchJob.State -eq "Failed") {
                 $script:timer.Stop()
                 
-                $error = $script:searchJob.ChildJobs[0].JobStateInfo.Reason.Message
-                Write-Console "ERROR: Search failed - $error"
+                $errorMsg = $script:searchJob.ChildJobs[0].JobStateInfo.Reason.Message
+                Write-Console "ERROR: Search failed - $errorMsg"
                 
                 Remove-Job -Job $script:searchJob -Force
                 $script:searchJob = $null
@@ -1102,7 +1134,7 @@ $runSearchBtn.Add_Click({
                 Hide-Progress
                 Update-Status "Search failed"
                 
-                [System.Windows.MessageBox]::Show("Search failed: $error", "Search Error", "OK", "Error")
+                [System.Windows.MessageBox]::Show("Search failed: $errorMsg", "Search Error", "OK", "Error")
             }
         })
         $script:timer.Start()
@@ -1141,14 +1173,14 @@ $clearConsoleBtn.Add_Click({
 
 # Results tab event handlers
 $refreshReportsBtn.Add_Click({
-    Load-RecentReports
+    Initialize-RecentReports
     Write-Console "Refreshed reports list"
 })
 
 $recentReportsCombo.Add_SelectionChanged({
     if ($recentReportsCombo.SelectedIndex -ge 0 -and $recentReportsCombo.SelectedIndex -lt $script:recentReports.Count) {
         $selectedReport = $script:recentReports[$recentReportsCombo.SelectedIndex].FullName
-        Load-HtmlReport -HtmlPath $selectedReport
+        Show-HtmlReport -HtmlPath $selectedReport
     }
 })
 
@@ -1183,10 +1215,10 @@ $exportResultsBtn.Add_Click({
 $keywordsList.ItemsSource = $script:keywords
 
 # Load default keywords
-Load-DefaultKeywords
+Initialize-DefaultKeywords
 
 # Load recent reports
-Load-RecentReports
+Initialize-RecentReports
 
 # Welcome message
 Write-Console "========================================="
