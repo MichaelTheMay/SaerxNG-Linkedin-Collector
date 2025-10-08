@@ -78,7 +78,7 @@ $xaml = @"
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="200"/>
+                        <RowDefinition Height="250"/>
                     </Grid.RowDefinitions>
                     
                     <!-- Main Content -->
@@ -185,7 +185,7 @@ $xaml = @"
                                         <StackPanel>
                                             <CheckBox Name="UseCacheCheck" Content="Use Cache" IsChecked="True" Margin="5"/>
                                             <CheckBox Name="OpenResultsCheck" Content="Auto-open Results" IsChecked="False" Margin="5"/>
-                                            <CheckBox Name="VerboseCheck" Content="Verbose Output" IsChecked="False" Margin="5"/>
+                                            <CheckBox Name="VerboseCheck" Content="Verbose Output" IsChecked="True" Margin="5"/>
                                             <CheckBox Name="ParallelCheck" Content="⚡ Parallel Execution" IsChecked="True" Margin="5"/>
                                             
                                             <Label Content="Export Format:" FontSize="11"/>
@@ -420,6 +420,7 @@ $script:progressFile = $null
 $script:lastProgressUpdate = [DateTime]::MinValue
 $script:currentReportPath = $null
 $script:recentReports = @()
+$script:searchStartTime = [DateTime]::MinValue
 
 # ============== HELPER FUNCTIONS ==============
 
@@ -564,10 +565,13 @@ function Load-DefaultKeywords {
 
 function Load-RecentReports {
     $reportsPath = Join-Path $workDirBox.Text "reports"
+    Write-Console "Scanning reports directory: $reportsPath"
     if (Test-Path $reportsPath) {
         $script:recentReports = Get-ChildItem -Path $reportsPath -Filter "*.html" | 
             Sort-Object LastWriteTime -Descending | 
             Select-Object -First 20
+        
+        Write-Console "Found $($script:recentReports.Count) HTML reports"
         
         $window.Dispatcher.Invoke([action]{
             $recentReportsCombo.Items.Clear()
@@ -579,6 +583,8 @@ function Load-RecentReports {
                 $recentReportsCombo.SelectedIndex = 0
             }
         })
+    } else {
+        Write-Console "Reports directory not found: $reportsPath"
     }
 }
 
@@ -591,10 +597,20 @@ function Load-HtmlReport {
     }
     
     try {
+        Write-Console "========================================="
+        Write-Console "LOADING REPORT"
+        Write-Console "========================================="
+        Write-Console "File: $([System.IO.Path]::GetFileName($HtmlPath))"
+        $fileInfo = Get-Item $HtmlPath
+        Write-Console "Size: $([math]::Round($fileInfo.Length / 1KB, 2)) KB"
+        Write-Console "Modified: $($fileInfo.LastWriteTime)"
+        
         $htmlContent = Get-Content $HtmlPath -Raw -Encoding UTF8
+        Write-Console "Content loaded: $($htmlContent.Length) characters"
         $script:currentReportPath = $HtmlPath
         
         # Parse HTML and display in RichTextBox
+        Write-Console "Parsing HTML content..."
         $window.Dispatcher.Invoke([action]{
             $resultsViewer.Document.Blocks.Clear()
             
@@ -683,11 +699,15 @@ function Load-HtmlReport {
             }
         })
         
-        Write-Console "Loaded report: $([System.IO.Path]::GetFileName($HtmlPath))"
+        Write-Console "Report successfully parsed and displayed"
+        Write-Console "========================================="
         
     } catch {
         [System.Windows.MessageBox]::Show("Error loading report: $($_.Exception.Message)", "Error", "OK", "Error")
-        Write-Console "ERROR: Failed to load report - $($_.Exception.Message)"
+        Write-Console "ERROR: Failed to load report"
+        Write-Console "Error Type: $($_.Exception.GetType().Name)"
+        Write-Console "Error Message: $($_.Exception.Message)"
+        Write-Console "========================================="
     }
 }
 
@@ -778,16 +798,33 @@ $loadFromFileBtn.Add_Click({
     
     if ($openFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         try {
-            $script:allKeywords = [System.IO.File]::ReadAllLines($openFileDialog.FileName) | 
+            Write-Console "========================================="
+            Write-Console "LOADING KEYWORDS FROM FILE"
+            Write-Console "========================================="
+            Write-Console "File: $($openFileDialog.FileName)"
+            $fileInfo = Get-Item $openFileDialog.FileName
+            Write-Console "Size: $([math]::Round($fileInfo.Length / 1KB, 2)) KB"
+            
+            $allLines = [System.IO.File]::ReadAllLines($openFileDialog.FileName)
+            Write-Console "Total lines read: $($allLines.Count)"
+            
+            $script:allKeywords = $allLines | 
                 Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } |
                 ForEach-Object { $_.Trim() }
+            
+            Write-Console "Valid keywords: $($script:allKeywords.Count)"
+            Write-Console "Comment lines skipped: $($allLines.Count - $script:allKeywords.Count)"
+            
             Refresh-KeywordsList
-            Write-Console "Loaded $($script:allKeywords.Count) keywords from: $([System.IO.Path]::GetFileName($openFileDialog.FileName))"
+            Write-Console "Keywords loaded successfully"
+            Write-Console "========================================="
             Update-Status "Keywords loaded from file"
         }
         catch {
             [System.Windows.MessageBox]::Show("Error loading file: $($_.Exception.Message)", "Error", "OK", "Error")
-            Write-Console "ERROR: Failed to load file - $($_.Exception.Message)"
+            Write-Console "ERROR: Failed to load file"
+            Write-Console "Error Message: $($_.Exception.Message)"
+            Write-Console "========================================="
         }
     }
 })
@@ -807,14 +844,27 @@ $saveToFileBtn.Add_Click({
     
     if ($saveFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         try {
-            [System.IO.File]::WriteAllLines($saveFileDialog.FileName, (@("# Generated Keywords - $([DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss'))", "# Total Keywords: $($script:allKeywords.Count)", "") + $script:allKeywords))
-            Write-Console "Saved $($script:allKeywords.Count) keywords to: $([System.IO.Path]::GetFileName($saveFileDialog.FileName))"
+            Write-Console "========================================="
+            Write-Console "SAVING KEYWORDS TO FILE"
+            Write-Console "========================================="
+            Write-Console "File: $($saveFileDialog.FileName)"
+            Write-Console "Keywords to save: $($script:allKeywords.Count)"
+            
+            $fileContent = @("# Generated Keywords - $([DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss'))", "# Total Keywords: $($script:allKeywords.Count)", "") + $script:allKeywords
+            [System.IO.File]::WriteAllLines($saveFileDialog.FileName, $fileContent)
+            
+            $savedFile = Get-Item $saveFileDialog.FileName
+            Write-Console "File size: $([math]::Round($savedFile.Length / 1KB, 2)) KB"
+            Write-Console "Keywords saved successfully"
+            Write-Console "========================================="
             Update-Status "Keywords saved to file"
             [System.Windows.MessageBox]::Show("Keywords saved successfully!", "Save Complete", "OK", "Information")
         }
         catch {
             [System.Windows.MessageBox]::Show("Error saving file: $($_.Exception.Message)", "Error", "OK", "Error")
-            Write-Console "ERROR: Failed to save file - $($_.Exception.Message)"
+            Write-Console "ERROR: Failed to save file"
+            Write-Console "Error Message: $($_.Exception.Message)"
+            Write-Console "========================================="
         }
     }
 })
@@ -861,16 +911,27 @@ $openLogsFolderBtn.Add_Click({ Open-Folder "logs" "Logs" })
 
 # Test connection button
 $testConnectionBtn.Add_Click({
+    Write-Console "========================================="
     Write-Console "Testing connection to SearxNG..."
+    Write-Console "Target URL: $($searxUrlBox.Text)"
+    Write-Console "Timeout: 5 seconds"
     Update-Status "Testing connection..."
     try {
-        $null = Invoke-WebRequest -Uri "$($searxUrlBox.Text)/search?q=test&format=json" -Headers @{'User-Agent'='Mozilla/5.0';'Accept'='application/json'} -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+        $testUrl = "$($searxUrlBox.Text)/search?q=test&format=json"
+        Write-Console "Sending test request: $testUrl"
+        $response = Invoke-WebRequest -Uri $testUrl -Headers @{'User-Agent'='Mozilla/5.0';'Accept'='application/json'} -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+        Write-Console "Response Status: $($response.StatusCode) $($response.StatusDescription)"
+        Write-Console "Content Length: $($response.Content.Length) bytes"
         Write-Console "✓ Connection successful! SearxNG is accessible."
+        Write-Console "========================================="
         Update-Status "Connection OK"
         [System.Windows.MessageBox]::Show("Successfully connected to SearxNG!", "Connection Test", "OK", "Information")
     }
     catch {
-        Write-Console "✗ Connection failed: $($_.Exception.Message)"
+        Write-Console "✗ Connection failed!"
+        Write-Console "Error Type: $($_.Exception.GetType().Name)"
+        Write-Console "Error Message: $($_.Exception.Message)"
+        Write-Console "========================================="
         Update-Status "Connection failed"
         [System.Windows.MessageBox]::Show("Failed to connect to SearxNG:`n$($_.Exception.Message)", "Connection Error", "OK", "Error")
     }
@@ -889,17 +950,29 @@ $runSearchBtn.Add_Click({
     $keywordsToSearch = if ($keywordsList.SelectedItems.Count -gt 0) { @($keywordsList.SelectedItems) } else { $script:allKeywords }
     if ([System.Windows.MessageBox]::Show("Run search with $($keywordsToSearch.Count) keyword(s)?`n`nThis may take several minutes depending on the number of keywords.", "Confirm Search", "YesNo", "Question") -eq "Yes") {
         $script:isSearchRunning = $true
+        $script:searchStartTime = Get-Date
         $runSearchBtn.IsEnabled = $false
         $stopSearchBtn.IsEnabled = $true
         
         Write-Console "========================================="
-        Write-Console "Starting search with $($keywordsToSearch.Count) keywords..."
+        Write-Console "SEARCH CONFIGURATION"
+        Write-Console "========================================="
+        Write-Console "Start Time: $($script:searchStartTime.ToString('HH:mm:ss'))"
+        Write-Console "Keywords: $($keywordsToSearch.Count) total"
         if ($parallelCheck.IsChecked) {
             Write-Console "Mode: PARALLEL (max $($throttleLimitBox.Text) threads)"
         } else {
             Write-Console "Mode: SEQUENTIAL"
         }
+        Write-Console "SearxNG URL: $($searxUrlBox.Text)"
+        Write-Console "Work Directory: $($workDirBox.Text)"
+        Write-Console "Export Format: $($exportFormatCombo.SelectedItem.Content.ToString())"
+        Write-Console "Delay: $($delayBox.Text) seconds"
+        Write-Console "Max Retries: $($maxRetriesBox.Text)"
+        Write-Console "Use Cache: $($useCacheCheck.IsChecked)"
+        Write-Console "Verbose: $($verboseCheck.IsChecked)"
         Write-Console "========================================="
+        Write-Console "Starting search operation..."
         Update-Status "Search running..."
         Show-Progress
         
@@ -990,18 +1063,22 @@ $runSearchBtn.Add_Click({
                 Hide-Progress
                 
                 Write-Console "========================================="
-                Write-Console "Search completed!"
+                Write-Console "SEARCH COMPLETED"
                 Write-Console "========================================="
+                Write-Console "Total execution time: $([math]::Round(((Get-Date) - $script:searchStartTime).TotalSeconds, 2)) seconds"
                 Update-Status "Search completed"
                 
                 # Automatically load the latest report in Results tab
+                Write-Console "Loading results into viewer..."
                 Load-RecentReports
                 if ($script:recentReports.Count -gt 0) {
                     $latestReport = $script:recentReports[0].FullName
+                    Write-Console "Switching to Results tab..."
                     Load-HtmlReport -HtmlPath $latestReport
                     $mainTabs.SelectedItem = $resultsTab
-                    Write-Console "Results loaded in Results tab"
+                    Write-Console "Results tab activated"
                 }
+                Write-Console "========================================="
                 
                 [System.Windows.MessageBox]::Show("Search completed successfully!`nResults have been loaded in the Results tab.", "Search Complete", "OK", "Information")
             }
@@ -1115,6 +1192,13 @@ Load-RecentReports
 Write-Console "========================================="
 Write-Console "SearxNG LinkedIn Collector - UI Edition"
 Write-Console "Version 2.2 with Integrated Results"
+Write-Console "========================================="
+Write-Console "Configuration:"
+Write-Console "  - SearxNG URL: $($searxUrlBox.Text)"
+Write-Console "  - Work Directory: $($workDirBox.Text)"
+Write-Console "  - Verbose Logging: ENABLED"
+Write-Console "  - Parallel Execution: $($parallelCheck.IsChecked)"
+Write-Console "  - Cache Enabled: $($useCacheCheck.IsChecked)"
 Write-Console "========================================="
 Write-Console "Ready! Load keywords or start searching."
 Write-Console ""
