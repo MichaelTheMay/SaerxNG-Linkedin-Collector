@@ -207,7 +207,7 @@ Write-Log "Directory structure created: logs, results, reports, cache, exports"
 
 # Statistics tracking
 $Stats = @{
-    StartTime = Get-Date
+    StartTime = [DateTime]::Now
     TotalQueries = 0
     SuccessfulQueries = 0
     FailedQueries = 0
@@ -215,11 +215,11 @@ $Stats = @{
     TotalResults = 0
     UniqueURLs = 0
     DuplicatesSkipped = 0
-    Errors = @()
+    Errors = [System.Collections.Generic.List[string]]::new()
 }
 
-$AllResults = @()
-$SeenURLs = @{}
+$AllResults = [System.Collections.Generic.List[PSCustomObject]]::new()
+$SeenURLs = [System.Collections.Generic.HashSet[string]]::new()
 $Cache = @{}
 $CacheFile = Join-Path $Directories.Cache "query_cache.json"
 
@@ -335,17 +335,10 @@ else {
 
 # ============== HELPER FUNCTIONS ==============
 function Show-ProgressBar {
-    param(
-        [int]$Current,
-        [int]$Total,
-        [string]$Activity
-    )
+    param([int]$Current, [int]$Total, [string]$Activity)
     $percent = [math]::Round(($Current / $Total) * 100)
     $completed = [math]::Floor($percent / 2)
-    $remaining = 50 - $completed
-    
-    $bar = "[" + ("█" * $completed) + ("░" * $remaining) + "]"
-    Write-Host "`r  $bar $percent% - $Activity" -NoNewline -ForegroundColor Cyan
+    Write-Host ("`r  [" + ("█" * $completed) + ("░" * (50 - $completed)) + "] $percent% - $Activity") -NoNewline -ForegroundColor Cyan
 }
 
 function Invoke-RetryableRequest {
@@ -372,40 +365,26 @@ function Invoke-RetryableRequest {
 
 function Format-LinkedInURL {
     param([string]$Url)
-    
-    # Clean up LinkedIn URLs (remove tracking parameters)
-    if ($Url -match '(https?://[^/]*linkedin\.com/(?:in|company)/[^/?]+)') {
-        return $matches[1]
-    }
+    $idx = $Url.IndexOf('?')
+    if ($idx -gt 0) { return $Url.Substring(0, $idx) }
     return $Url
 }
 
 function Test-URLValid {
     param([string]$Url)
-    
-    # Check profile type filter
-    $matchesType = $false
-    if ($Config.ProfileTypes.Count -eq 0) {
-        $matchesType = $true
-    }
-    else {
+    if ($Config.ProfileTypes.Count -gt 0) {
+        $matched = $false
         foreach ($type in $Config.ProfileTypes) {
-            if ($Url -like "*linkedin.com/$type*") {
-                $matchesType = $true
+            if ($Url.IndexOf("linkedin.com/$type", [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                $matched = $true
                 break
             }
         }
+        if (-not $matched) { return $false }
     }
-    
-    if (-not $matchesType) { return $false }
-    
-    # Check exclusion patterns
     foreach ($pattern in $Config.ExcludePatterns) {
-        if ($Url -like "*$pattern*") {
-            return $false
-        }
+        if ($Url.IndexOf($pattern, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $false }
     }
-    
     return $true
 }
 
@@ -439,22 +418,17 @@ foreach ($kw in $Keywords) {
     # Check cache
     if ($Config.UseCache -and $Cache.ContainsKey($cacheKey)) {
         $cachedResults = $Cache[$cacheKey].Results
-        Write-Host "`n  [$currentQuery/$($Keywords.Count)] " -NoNewline -ForegroundColor Cyan
-        Write-Host "$query " -NoNewline -ForegroundColor White
-        Write-Host "[CACHED]" -ForegroundColor Magenta
-        
+        Write-Host "`n  [$currentQuery/$($Keywords.Count)] $query [CACHED]" -ForegroundColor Magenta
+        $addedFromCache = 0
         foreach ($result in $cachedResults) {
-            $cleanUrl = $result.URL
-            if (-not $SeenURLs.ContainsKey($cleanUrl)) {
-                $AllResults += [PSCustomObject]$result
-                $SeenURLs[$cleanUrl] = $true
-            }
-            else {
+            if ($SeenURLs.Add($result.URL)) {
+                $AllResults.Add([PSCustomObject]$result)
+                $addedFromCache++
+            } else {
                 $Stats.DuplicatesSkipped++
             }
         }
-        
-        Write-Host "      ✓ Loaded: $($cachedResults.Count) results from cache" -ForegroundColor Magenta
+        Write-Host "      ✓ Loaded: $addedFromCache results from cache" -ForegroundColor Magenta
         $Stats.CachedQueries++
         continue
     }
@@ -493,15 +467,13 @@ foreach ($kw in $Keywords) {
                     $pageAddedCount = 0
                     $pageDuplicateCount = 0
                     
+                    $timestamp = [DateTime]::Now.ToString("yyyy-MM-dd HH:mm:ss")
                     foreach ($result in $results) {
                         $cleanUrl = Format-LinkedInURL -Url $result.url
-                        
-                        # Validate URL
                         if (-not (Test-URLValid -Url $cleanUrl)) {
                             $filteredCount++
                             continue
                         }
-                        
                         $resultObject = @{
                             Keyword = $kw
                             Title = $result.title
@@ -509,23 +481,24 @@ foreach ($kw in $Keywords) {
                             Content = if ($result.content) { $result.content } else { "" }
                             Engine = if ($result.engine) { $result.engine } else { "unknown" }
                             Score = if ($result.score) { $result.score } else { 0 }
-                            Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                            Timestamp = $timestamp
                         }
-                        
                         $queryResults += $resultObject
-                        
-                        # Deduplication
-                        if ($Config.DeduplicateURLs -and $SeenURLs.ContainsKey($cleanUrl)) {
-                            $duplicateCount++
-                            $pageDuplicateCount++
-                            $Stats.DuplicatesSkipped++
-                            continue
+                        if ($Config.DeduplicateURLs) {
+                            if ($SeenURLs.Add($cleanUrl)) {
+                                $AllResults.Add([PSCustomObject]$resultObject)
+                                $addedCount++
+                                $pageAddedCount++
+                            } else {
+                                $duplicateCount++
+                                $pageDuplicateCount++
+                                $Stats.DuplicatesSkipped++
+                            }
+                        } else {
+                            $AllResults.Add([PSCustomObject]$resultObject)
+                            $addedCount++
+                            $pageAddedCount++
                         }
-                        
-                        $AllResults += [PSCustomObject]$resultObject
-                        $SeenURLs[$cleanUrl] = $true
-                        $addedCount++
-                        $pageAddedCount++
                     }
                     
                     if ($pageNum -gt 1) {
@@ -598,7 +571,7 @@ foreach ($kw in $Keywords) {
         Write-Host "      ✗ Error: $($_.Exception.Message)" -ForegroundColor Red
         $Stats.FailedQueries++
         $errorMsg = "Query '$kw': $($_.Exception.Message)"
-        $Stats.Errors += $errorMsg
+        $Stats.Errors.Add($errorMsg)
         Write-Log $errorMsg "ERROR"
     }
     
@@ -622,7 +595,7 @@ if ($Config.UseCache -and $Cache.Count -gt 0) {
 }
 
 $Stats.UniqueURLs = $AllResults.Count
-$Stats.EndTime = Get-Date
+$Stats.EndTime = [DateTime]::Now
 $Stats.Duration = $Stats.EndTime - $Stats.StartTime
 
 # ============== DATA ANALYSIS ==============
@@ -678,7 +651,7 @@ if ($Config.ExportFormats -contains "JSON") {
 # Export TXT (URLs only)
 if ($Config.ExportFormats -contains "TXT") {
     $txtPath = Join-Path $Directories.Results "linkedin_urls_$exportTimestamp.txt"
-    $AllResults | ForEach-Object { $_.URL } | Out-File -FilePath $txtPath -Encoding UTF8
+    [System.IO.File]::WriteAllLines($txtPath, ($AllResults | ForEach-Object { $_.URL }))
     Write-Host "      ✓ TXT: $txtPath" -ForegroundColor Green
     $ExportedFiles += $txtPath
     Write-Log "Exported TXT: $txtPath" "SUCCESS"
@@ -742,35 +715,19 @@ if ($Config.ExportFormats -contains "HTML") {
             <tr><th>Keyword</th><th>Results</th><th>Percentage</th></tr>
 "@
     
+    $sb = [System.Text.StringBuilder]::new($html)
     foreach ($stat in $keywordStats) {
         $percent = [math]::Round(($stat.Count / $Stats.UniqueURLs) * 100, 1)
-        $html += "<tr><td>$($stat.Keyword)</td><td>$($stat.Count)</td><td>$percent%</td></tr>`n"
+        [void]$sb.AppendLine("<tr><td>$($stat.Keyword)</td><td>$($stat.Count)</td><td>$percent%</td></tr>")
     }
-    
-    $html += @"
-        </table>
-        
-        <h2>🔗 All Results</h2>
-        <table>
-            <tr><th>Title</th><th>URL</th><th>Keyword</th><th>Engine</th></tr>
-"@
-    
+    [void]$sb.AppendLine("</table><h2>🔗 All Results</h2><table><tr><th>Title</th><th>URL</th><th>Keyword</th><th>Engine</th></tr>")
     foreach ($result in $AllResults) {
-        $html += "<tr><td>$($result.Title)</td><td><a href='$($result.URL)' target='_blank'>$($result.URL)</a></td><td><span class='keyword'>$($result.Keyword)</span></td><td><span class='engine'>$($result.Engine)</span></td></tr>`n"
+        [void]$sb.AppendLine("<tr><td>$($result.Title)</td><td><a href='$($result.URL)' target='_blank'>$($result.URL)</a></td><td><span class='keyword'>$($result.Keyword)</span></td><td><span class='engine'>$($result.Engine)</span></td></tr>")
     }
+    $html = $sb.ToString()
     
-    $html += @"
-        </table>
-        
-        <div class="footer">
-            <p>Generated by SearxNG LinkedIn Collector Professional Edition v2.0</p>
-        </div>
-    </div>
-</body>
-</html>
-"@
-    
-    $html | Out-File -FilePath $htmlPath -Encoding UTF8
+    [void]$sb.AppendLine("</table><div class='footer'><p>Generated by SearxNG LinkedIn Collector Professional Edition v2.0</p></div></div></body></html>")
+    [System.IO.File]::WriteAllText($htmlPath, $sb.ToString(), [System.Text.Encoding]::UTF8)
     Write-Host "      ✓ HTML: $htmlPath" -ForegroundColor Green
     $ExportedFiles += $htmlPath
     Write-Log "Exported HTML: $htmlPath" "SUCCESS"

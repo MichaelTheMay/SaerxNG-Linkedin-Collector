@@ -24,12 +24,9 @@ $xaml = @"
         <Style TargetType="Button">
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="Margin" Value="5"/>
-            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Background" Value="#0077B5"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#005A8C"/>
@@ -39,12 +36,8 @@ $xaml = @"
         <Style TargetType="TextBox">
             <Setter Property="Padding" Value="5"/>
             <Setter Property="Margin" Value="5"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="BorderBrush" Value="#CCCCCC"/>
         </Style>
         <Style TargetType="Label">
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="5,5,5,0"/>
         </Style>
     </Window.Resources>
@@ -310,11 +303,9 @@ $script:timer = $null
 # ============== HELPER FUNCTIONS ==============
 
 function Write-Console {
-    param([string]$Message, [string]$Color = "Black")
-    
+    param([string]$Message)
     $window.Dispatcher.Invoke([action]{
-        $timestamp = Get-Date -Format "HH:mm:ss"
-        $consoleOutput.AppendText("[$timestamp] $Message`r`n")
+        $consoleOutput.AppendText("[$([DateTime]::Now.ToString('HH:mm:ss'))] $Message`r`n")
         $consoleOutput.ScrollToEnd()
     })
 }
@@ -328,30 +319,79 @@ function Update-KeywordCount {
 
 function Update-Status {
     param([string]$Message)
-    $window.Dispatcher.Invoke([action]{
-        $statusText.Text = $Message
-    })
+    $window.Dispatcher.Invoke([action]{ $statusText.Text = $Message })
 }
 
 function Refresh-KeywordsList {
     param([string]$filter = "")
-    
     $script:keywords.Clear()
-    
     if ([string]::IsNullOrWhiteSpace($filter)) {
+        $script:keywords = [System.Collections.ObjectModel.ObservableCollection[string]]::new($script:allKeywords)
+    } else {
         foreach ($kw in $script:allKeywords) {
-            $script:keywords.Add($kw)
-        }
-    }
-    else {
-        foreach ($kw in $script:allKeywords) {
-            if ($kw -like "*$filter*") {
+            if ($kw.IndexOf($filter, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
                 $script:keywords.Add($kw)
             }
         }
     }
-    
+    $keywordsList.ItemsSource = $script:keywords
     Update-KeywordCount
+}
+
+function Show-InputDialog {
+    param([string]$Title, [string]$Label, [string]$DefaultValue = "", [scriptblock]$OnOk)
+    
+    $dialog = New-Object System.Windows.Window
+    $dialog.Title = $Title
+    $dialog.Width = 400
+    $dialog.Height = 150
+    $dialog.WindowStartupLocation = "CenterOwner"
+    $dialog.Owner = $window
+    
+    $grid = New-Object System.Windows.Controls.Grid
+    $grid.Margin = "10"
+    
+    $lbl = New-Object System.Windows.Controls.Label
+    $lbl.Content = $Label
+    
+    $txt = New-Object System.Windows.Controls.TextBox
+    $txt.Text = $DefaultValue
+    $txt.Margin = "0,30,0,0"
+    $txt.Height = 30
+    
+    $panel = New-Object System.Windows.Controls.StackPanel
+    $panel.Orientation = "Horizontal"
+    $panel.HorizontalAlignment = "Right"
+    $panel.Margin = "0,70,0,0"
+    
+    $okBtn = New-Object System.Windows.Controls.Button
+    $okBtn.Content = "OK"
+    $okBtn.Width = 80
+    $okBtn.Margin = "5"
+    $okBtn.IsDefault = $true
+    $okBtn.Add_Click({
+        if (-not [string]::IsNullOrWhiteSpace($txt.Text)) {
+            & $OnOk $txt.Text.Trim()
+        }
+        $dialog.Close()
+    })
+    
+    $cancelBtn = New-Object System.Windows.Controls.Button
+    $cancelBtn.Content = "Cancel"
+    $cancelBtn.Width = 80
+    $cancelBtn.Margin = "5"
+    $cancelBtn.IsCancel = $true
+    $cancelBtn.Add_Click({ $dialog.Close() })
+    
+    $panel.AddChild($okBtn)
+    $panel.AddChild($cancelBtn)
+    $grid.AddChild($lbl)
+    $grid.AddChild($txt)
+    $grid.AddChild($panel)
+    $dialog.Content = $grid
+    $txt.SelectAll()
+    $txt.Focus()
+    $dialog.ShowDialog()
 }
 
 function Load-DefaultKeywords {
@@ -386,68 +426,17 @@ $keywordsList.Add_SelectionChanged({
 
 # Add keyword button
 $addKeywordBtn.Add_Click({
-    $inputBox = New-Object System.Windows.Window
-    $inputBox.Title = "Add Keyword"
-    $inputBox.Width = 400
-    $inputBox.Height = 150
-    $inputBox.WindowStartupLocation = "CenterOwner"
-    $inputBox.Owner = $window
-    
-    $grid = New-Object System.Windows.Controls.Grid
-    $grid.Margin = "10"
-    
-    $label = New-Object System.Windows.Controls.Label
-    $label.Content = "Enter keyword:"
-    $label.Margin = "0,0,0,5"
-    
-    $textBox = New-Object System.Windows.Controls.TextBox
-    $textBox.Margin = "0,30,0,0"
-    $textBox.Height = 30
-    $textBox.FontSize = 12
-    
-    $buttonPanel = New-Object System.Windows.Controls.StackPanel
-    $buttonPanel.Orientation = "Horizontal"
-    $buttonPanel.HorizontalAlignment = "Right"
-    $buttonPanel.Margin = "0,70,0,0"
-    
-    $okBtn = New-Object System.Windows.Controls.Button
-    $okBtn.Content = "Add"
-    $okBtn.Width = 80
-    $okBtn.Margin = "5"
-    $okBtn.IsDefault = $true
-    $okBtn.Add_Click({
-        if (-not [string]::IsNullOrWhiteSpace($textBox.Text)) {
-            $newKeyword = $textBox.Text.Trim()
-            if ($script:allKeywords -notcontains $newKeyword) {
-                $script:allKeywords += $newKeyword
-                Refresh-KeywordsList -filter $filterBox.Text
-                Write-Console "Added keyword: $newKeyword"
-                Update-Status "Added keyword"
-            }
-            else {
-                [System.Windows.MessageBox]::Show("Keyword already exists!", "Duplicate", "OK", "Warning")
-            }
+    Show-InputDialog -Title "Add Keyword" -Label "Enter keyword:" -OnOk {
+        param($newKeyword)
+        if ($script:allKeywords -notcontains $newKeyword) {
+            $script:allKeywords += $newKeyword
+            Refresh-KeywordsList -filter $filterBox.Text
+            Write-Console "Added keyword: $newKeyword"
+            Update-Status "Added keyword"
+        } else {
+            [System.Windows.MessageBox]::Show("Keyword already exists!", "Duplicate", "OK", "Warning")
         }
-        $inputBox.Close()
-    })
-    
-    $cancelBtn = New-Object System.Windows.Controls.Button
-    $cancelBtn.Content = "Cancel"
-    $cancelBtn.Width = 80
-    $cancelBtn.Margin = "5"
-    $cancelBtn.IsCancel = $true
-    $cancelBtn.Add_Click({ $inputBox.Close() })
-    
-    $buttonPanel.AddChild($okBtn)
-    $buttonPanel.AddChild($cancelBtn)
-    
-    $grid.AddChild($label)
-    $grid.AddChild($textBox)
-    $grid.AddChild($buttonPanel)
-    
-    $inputBox.Content = $grid
-    $textBox.Focus()
-    $inputBox.ShowDialog()
+    }
 })
 
 # Edit keyword button
@@ -455,68 +444,14 @@ $editKeywordBtn.Add_Click({
     if ($keywordsList.SelectedItems.Count -eq 1) {
         $selected = $keywordsList.SelectedItem
         $index = $script:allKeywords.IndexOf($selected)
-        
-        $inputBox = New-Object System.Windows.Window
-        $inputBox.Title = "Edit Keyword"
-        $inputBox.Width = 400
-        $inputBox.Height = 150
-        $inputBox.WindowStartupLocation = "CenterOwner"
-        $inputBox.Owner = $window
-        
-        $grid = New-Object System.Windows.Controls.Grid
-        $grid.Margin = "10"
-        
-        $label = New-Object System.Windows.Controls.Label
-        $label.Content = "Edit keyword:"
-        $label.Margin = "0,0,0,5"
-        
-        $textBox = New-Object System.Windows.Controls.TextBox
-        $textBox.Text = $selected
-        $textBox.Margin = "0,30,0,0"
-        $textBox.Height = 30
-        $textBox.FontSize = 12
-        
-        $buttonPanel = New-Object System.Windows.Controls.StackPanel
-        $buttonPanel.Orientation = "Horizontal"
-        $buttonPanel.HorizontalAlignment = "Right"
-        $buttonPanel.Margin = "0,70,0,0"
-        
-        $okBtn = New-Object System.Windows.Controls.Button
-        $okBtn.Content = "Save"
-        $okBtn.Width = 80
-        $okBtn.Margin = "5"
-        $okBtn.IsDefault = $true
-        $okBtn.Add_Click({
-            if (-not [string]::IsNullOrWhiteSpace($textBox.Text)) {
-                $newValue = $textBox.Text.Trim()
-                $script:allKeywords[$index] = $newValue
-                Refresh-KeywordsList -filter $filterBox.Text
-                Write-Console "Edited keyword: $selected -> $newValue"
-                Update-Status "Keyword updated"
-            }
-            $inputBox.Close()
-        })
-        
-        $cancelBtn = New-Object System.Windows.Controls.Button
-        $cancelBtn.Content = "Cancel"
-        $cancelBtn.Width = 80
-        $cancelBtn.Margin = "5"
-        $cancelBtn.IsCancel = $true
-        $cancelBtn.Add_Click({ $inputBox.Close() })
-        
-        $buttonPanel.AddChild($okBtn)
-        $buttonPanel.AddChild($cancelBtn)
-        
-        $grid.AddChild($label)
-        $grid.AddChild($textBox)
-        $grid.AddChild($buttonPanel)
-        
-        $inputBox.Content = $grid
-        $textBox.SelectAll()
-        $textBox.Focus()
-        $inputBox.ShowDialog()
-    }
-    else {
+        Show-InputDialog -Title "Edit Keyword" -Label "Edit keyword:" -DefaultValue $selected -OnOk {
+            param($newValue)
+            $script:allKeywords[$index] = $newValue
+            Refresh-KeywordsList -filter $filterBox.Text
+            Write-Console "Edited keyword: $selected -> $newValue"
+            Update-Status "Keyword updated"
+        }
+    } else {
         [System.Windows.MessageBox]::Show("Please select exactly one keyword to edit.", "Edit Keyword", "OK", "Information")
     }
 })
@@ -524,38 +459,21 @@ $editKeywordBtn.Add_Click({
 # Delete keyword button
 $deleteKeywordBtn.Add_Click({
     if ($keywordsList.SelectedItems.Count -gt 0) {
-        $result = [System.Windows.MessageBox]::Show(
-            "Delete $($keywordsList.SelectedItems.Count) selected keyword(s)?",
-            "Confirm Delete",
-            "YesNo",
-            "Question"
-        )
-        
-        if ($result -eq "Yes") {
-            $toDelete = @($keywordsList.SelectedItems)
-            foreach ($kw in $toDelete) {
-                $script:allKeywords = $script:allKeywords | Where-Object { $_ -ne $kw }
-            }
+        if ([System.Windows.MessageBox]::Show("Delete $($keywordsList.SelectedItems.Count) selected keyword(s)?", "Confirm Delete", "YesNo", "Question") -eq "Yes") {
+            $toDeleteSet = [System.Collections.Generic.HashSet[string]]::new([string[]]$keywordsList.SelectedItems)
+            $script:allKeywords = [System.Collections.Generic.List[string]]::new(($script:allKeywords | Where-Object { -not $toDeleteSet.Contains($_) }))
             Refresh-KeywordsList -filter $filterBox.Text
-            Write-Console "Deleted $($toDelete.Count) keyword(s)"
+            Write-Console "Deleted $($toDeleteSet.Count) keyword(s)"
             Update-Status "Keywords deleted"
         }
-    }
-    else {
+    } else {
         [System.Windows.MessageBox]::Show("Please select keyword(s) to delete.", "Delete Keywords", "OK", "Information")
     }
 })
 
 # Clear all button
 $clearAllBtn.Add_Click({
-    $result = [System.Windows.MessageBox]::Show(
-        "Clear all keywords? This cannot be undone.",
-        "Confirm Clear",
-        "YesNo",
-        "Warning"
-    )
-    
-    if ($result -eq "Yes") {
+    if ([System.Windows.MessageBox]::Show("Clear all keywords? This cannot be undone.", "Confirm Clear", "YesNo", "Warning") -eq "Yes") {
         $script:allKeywords = @()
         Refresh-KeywordsList
         Write-Console "Cleared all keywords"
@@ -581,13 +499,11 @@ $loadFromFileBtn.Add_Click({
     
     if ($openFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         try {
-            $loadedKeywords = Get-Content $openFileDialog.FileName | 
-                Where-Object { $_ -notmatch '^\s*#' -and $_ -notmatch '^\s*$' } |
+            $script:allKeywords = [System.IO.File]::ReadAllLines($openFileDialog.FileName) | 
+                Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } |
                 ForEach-Object { $_.Trim() }
-            
-            $script:allKeywords = $loadedKeywords
             Refresh-KeywordsList
-            Write-Console "Loaded $($loadedKeywords.Count) keywords from: $($openFileDialog.FileName)"
+            Write-Console "Loaded $($script:allKeywords.Count) keywords from: $([System.IO.Path]::GetFileName($openFileDialog.FileName))"
             Update-Status "Keywords loaded from file"
         }
         catch {
@@ -607,20 +523,13 @@ $saveToFileBtn.Add_Click({
     $saveFileDialog = New-Object System.Windows.Forms.SaveFileDialog
     $saveFileDialog.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
     $saveFileDialog.DefaultExt = "txt"
-    $saveFileDialog.FileName = "keywords_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
+    $saveFileDialog.FileName = "keywords_$([DateTime]::Now.ToString('yyyyMMdd_HHmmss')).txt"
     $saveFileDialog.InitialDirectory = $PSScriptRoot
     
     if ($saveFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         try {
-            $header = @"
-# Generated Keywords - $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-# Total Keywords: $($script:allKeywords.Count)
-
-"@
-            $header | Out-File -FilePath $saveFileDialog.FileName -Encoding UTF8
-            $script:allKeywords | Out-File -FilePath $saveFileDialog.FileName -Append -Encoding UTF8
-            
-            Write-Console "Saved $($script:allKeywords.Count) keywords to: $($saveFileDialog.FileName)"
+            [System.IO.File]::WriteAllLines($saveFileDialog.FileName, (@("# Generated Keywords - $([DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss'))", "# Total Keywords: $($script:allKeywords.Count)", "") + $script:allKeywords))
+            Write-Console "Saved $($script:allKeywords.Count) keywords to: $([System.IO.Path]::GetFileName($saveFileDialog.FileName))"
             Update-Status "Keywords saved to file"
             [System.Windows.MessageBox]::Show("Keywords saved successfully!", "Save Complete", "OK", "Information")
         }
@@ -633,82 +542,50 @@ $saveToFileBtn.Add_Click({
 
 # Generate permutations button
 $generatePermutationsBtn.Add_Click({
-    if (Test-Path ".\Generate-KeywordPermutations.ps1") {
+    $scriptPath = ".\Generate-KeywordPermutations.ps1"
+    if (Test-Path $scriptPath) {
         Write-Console "Generating keyword permutations..."
         Update-Status "Generating permutations..."
-        
         try {
-            $tempFile = Join-Path $env:TEMP "temp_keywords_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
-            & ".\Generate-KeywordPermutations.ps1" -ExportToFile $tempFile
-            
+            $tempFile = [System.IO.Path]::Combine($env:TEMP, "temp_kw_$([DateTime]::Now.Ticks).txt")
+            & $scriptPath -ExportToFile $tempFile
             if (Test-Path $tempFile) {
-                $loadedKeywords = Get-Content $tempFile | 
-                    Where-Object { $_ -notmatch '^\s*#' -and $_ -notmatch '^\s*$' } |
-                    ForEach-Object { $_.Trim() }
-                
-                $script:allKeywords = $loadedKeywords
+                $script:allKeywords = [System.IO.File]::ReadAllLines($tempFile) | Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } | ForEach-Object { $_.Trim() }
                 Refresh-KeywordsList
-                Write-Console "Generated and loaded $($loadedKeywords.Count) keyword permutations"
+                Write-Console "Generated and loaded $($script:allKeywords.Count) keyword permutations"
                 Update-Status "Permutations generated"
-                
-                Remove-Item $tempFile -Force
+                Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
             }
         }
         catch {
             [System.Windows.MessageBox]::Show("Error generating permutations: $($_.Exception.Message)", "Error", "OK", "Error")
             Write-Console "ERROR: Failed to generate permutations - $($_.Exception.Message)"
         }
-    }
-    else {
+    } else {
         [System.Windows.MessageBox]::Show("Generate-KeywordPermutations.ps1 not found in current directory.", "Error", "OK", "Error")
     }
 })
 
 # Open folders buttons
-$openResultsFolderBtn.Add_Click({
-    $resultsPath = Join-Path $workDirBox.Text "results"
-    if (Test-Path $resultsPath) {
-        Start-Process explorer $resultsPath
+function Open-Folder {
+    param([string]$SubFolder, [string]$Name)
+    $path = [System.IO.Path]::Combine($workDirBox.Text, $SubFolder)
+    if (Test-Path $path) {
+        Start-Process explorer $path
+    } else {
+        [System.Windows.MessageBox]::Show("$Name folder does not exist yet.", "Folder Not Found", "OK", "Information")
     }
-    else {
-        [System.Windows.MessageBox]::Show("Results folder does not exist yet.", "Folder Not Found", "OK", "Information")
-    }
-})
-
-$openReportsFolderBtn.Add_Click({
-    $reportsPath = Join-Path $workDirBox.Text "reports"
-    if (Test-Path $reportsPath) {
-        Start-Process explorer $reportsPath
-    }
-    else {
-        [System.Windows.MessageBox]::Show("Reports folder does not exist yet.", "Folder Not Found", "OK", "Information")
-    }
-})
-
-$openLogsFolderBtn.Add_Click({
-    $logsPath = Join-Path $workDirBox.Text "logs"
-    if (Test-Path $logsPath) {
-        Start-Process explorer $logsPath
-    }
-    else {
-        [System.Windows.MessageBox]::Show("Logs folder does not exist yet.", "Folder Not Found", "OK", "Information")
-    }
-})
+}
+$openResultsFolderBtn.Add_Click({ Open-Folder "results" "Results" })
+$openReportsFolderBtn.Add_Click({ Open-Folder "reports" "Reports" })
+$openLogsFolderBtn.Add_Click({ Open-Folder "logs" "Logs" })
 
 # Test connection button
 $testConnectionBtn.Add_Click({
     Write-Console "Testing connection to SearxNG..."
     Update-Status "Testing connection..."
-    
     try {
-        $testHeaders = @{
-            'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            'Accept' = 'application/json'
-        }
-        $testQuery = [uri]::EscapeDataString("test")
-        $searxUrl = $searxUrlBox.Text
-        $null = Invoke-WebRequest -Uri "$searxUrl/search?q=$testQuery&format=json" -Headers $testHeaders -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
-        
+        $null = Invoke-WebRequest -Uri "$($searxUrlBox.Text)/search?q=test&format=json" -Headers @{'User-Agent'='Mozilla/5.0';'Accept'='application/json'} -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
         Write-Console "✓ Connection successful! SearxNG is accessible."
         Update-Status "Connection OK"
         [System.Windows.MessageBox]::Show("Successfully connected to SearxNG!", "Connection Test", "OK", "Information")
@@ -726,27 +603,12 @@ $runSearchBtn.Add_Click({
         [System.Windows.MessageBox]::Show("No keywords loaded. Please add or load keywords first.", "No Keywords", "OK", "Warning")
         return
     }
-    
     if ($script:isSearchRunning) {
         [System.Windows.MessageBox]::Show("A search is already running.", "Search Running", "OK", "Information")
         return
     }
-    
-    # Get selected keywords or use all
-    $keywordsToSearch = if ($keywordsList.SelectedItems.Count -gt 0) {
-        @($keywordsList.SelectedItems)
-    } else {
-        $script:allKeywords
-    }
-    
-    $result = [System.Windows.MessageBox]::Show(
-        "Run search with $($keywordsToSearch.Count) keyword(s)?`n`nThis may take several minutes depending on the number of keywords.",
-        "Confirm Search",
-        "YesNo",
-        "Question"
-    )
-    
-    if ($result -eq "Yes") {
+    $keywordsToSearch = if ($keywordsList.SelectedItems.Count -gt 0) { @($keywordsList.SelectedItems) } else { $script:allKeywords }
+    if ([System.Windows.MessageBox]::Show("Run search with $($keywordsToSearch.Count) keyword(s)?`n`nThis may take several minutes depending on the number of keywords.", "Confirm Search", "YesNo", "Question") -eq "Yes") {
         $script:isSearchRunning = $true
         $runSearchBtn.IsEnabled = $false
         $stopSearchBtn.IsEnabled = $true
@@ -836,30 +698,19 @@ $runSearchBtn.Add_Click({
 
 # Stop search button
 $stopSearchBtn.Add_Click({
-    if ($script:searchJob) {
-        $result = [System.Windows.MessageBox]::Show(
-            "Stop the running search?",
-            "Confirm Stop",
-            "YesNo",
-            "Question"
-        )
-        
-        if ($result -eq "Yes") {
-            if ($script:timer) {
-                $script:timer.Stop()
-                $script:timer = $null
-            }
-            Stop-Job -Job $script:searchJob
-            Remove-Job -Job $script:searchJob -Force
-            $script:searchJob = $null
-            $script:isSearchRunning = $false
-            
-            $runSearchBtn.IsEnabled = $true
-            $stopSearchBtn.IsEnabled = $false
-            
-            Write-Console "Search stopped by user"
-            Update-Status "Search stopped"
+    if ($script:searchJob -and [System.Windows.MessageBox]::Show("Stop the running search?", "Confirm Stop", "YesNo", "Question") -eq "Yes") {
+        if ($script:timer) {
+            $script:timer.Stop()
+            $script:timer = $null
         }
+        Stop-Job -Job $script:searchJob
+        Remove-Job -Job $script:searchJob -Force
+        $script:searchJob = $null
+        $script:isSearchRunning = $false
+        $runSearchBtn.IsEnabled = $true
+        $stopSearchBtn.IsEnabled = $false
+        Write-Console "Search stopped by user"
+        Update-Status "Search stopped"
     }
 })
 
